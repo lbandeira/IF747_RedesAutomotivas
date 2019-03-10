@@ -62,6 +62,7 @@ void sendPid(unsigned char __pid)
     Serial.print("SEND PID: 0x");
     Serial.println(__pid, HEX);
     CAN.sendMsgBuf(CAN_ID_PID, 0, 8, tmp);
+
 }
 
 void setup()
@@ -84,10 +85,10 @@ void loop()
 
     int c;
     for(c = 0; c < 5; c++){
-
       sendPid(PIDs[c]);
       PID_INPUT = 0;
       delay(1000);
+
     }
 
 }
@@ -111,6 +112,20 @@ void taskCanRecv()
             Serial.print("\t");
         }
         Serial.println();
+      /*
+        switch(){               //translate the data
+          case 0x0C:
+          //  (256*A + B)/4
+          case 0x0D:
+          //  A
+          case 0x05:
+          //  A-40
+          case 0x03:
+          // Bit encoded
+          case 0x0A:
+          //  3*A
+          }
+      */
     }
 }
 
