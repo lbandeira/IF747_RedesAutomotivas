@@ -1,4 +1,4 @@
 # Block Diagram of Bit timing
-![](/Block_Diagram.jpg)
+![Block](/Block_Diagram.png)
 
 # State Machine of Bit timing
