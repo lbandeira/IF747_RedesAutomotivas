@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "frame_builder.h"
 #include "bit_stuff_control.h"
+#include "frame_control.h"
 
 void setup() {
   Serial.begin(9600);

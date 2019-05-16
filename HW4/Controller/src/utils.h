@@ -1,7 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-// Tipo de dados de 8 bits sem sinal
+// Tipo de dados de 8 bits sem sinal (0 - 255)
 typedef unsigned char byte;
 
 // Indices utilizados para auxiliar a construcao do frame
@@ -26,8 +26,30 @@ enum FrameState {
     ACK, ACK_DELIM, EOFRAME
 };
 
+// Struct que representa um frame can
+typedef struct CanFrame
+{
+    bool id_a[11];
+    bool rtr_a_srr;
+    bool ide;
+    bool r0;
+    bool id_b[18];
+    bool rtr_b;
+    bool r1_r0[2];
+    bool dlc[4];
+    bool payload[64];
+    bool crc[15];
+    bool crc_delimiter;
+    bool ack;
+    bool ack_delimiter;
+    bool eof[7];
+} CanFrame;
+
 // Funcao auxiliar que transforma numero em um array de bits
 void convert_to_bit_array(int value, bool *bit_array, int size);
+
+// Converte um array de bits para um array e retorna o mesmo
+int convert_bit_array_to_int(bool *bit_array, int size);
 
 // Funcao que efetua o calculo do CRC
 short calculate_crc(bool *frame, int frame_size);

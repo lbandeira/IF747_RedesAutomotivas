@@ -14,7 +14,7 @@ void check_bit_stuff(bool rx, int current_state) {
         last_bit = 0; // o bit do start of frame eh dominante (0)
     }
     // caso seja qualquer outro estado antes do crc delimiter
-    // (o bit stuff soh eh aplicado ateh o crc)
+    // (o bit stuff so eh aplicado ate o crc)
     else if (current_state <= CRC) {
         // reseta a variavel que indica se o bit lido eh bit stuff
         if (bit_stuff_flag)
@@ -24,7 +24,7 @@ void check_bit_stuff(bool rx, int current_state) {
             bit_stuff_error = true;
             bits_count = 1;
         } else if (bits_count == 5) {
-            // o bit atual eh um bit stuff e deve ser ignorado pelo decoder, pois jah foram lidos 
+            // o bit atual eh um bit stuff e deve ser ignorado pelo decoder, pois ja foram lidos 
             // 5 bits consecutivos iguais
             bit_stuff_flag = true;
         }

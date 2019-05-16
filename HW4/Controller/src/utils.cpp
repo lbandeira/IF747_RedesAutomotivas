@@ -8,6 +8,18 @@ void convert_to_bit_array(int value, bool *bit_array, int size) {
     }
 }
 
+// Converte um array de bits para um array e retorna o mesmo
+int convert_bit_array_to_int(bool *bit_array, int size) {
+    int result = 0;
+
+    for (int i = 0; i < size; i++) {
+        result <<= 1;
+        result |= bit_array[i];
+    }
+
+    return result;
+}
+
 // Funcao que efetua o calculo do CRC
 short calculate_crc(bool *frame, int frame_size) {
     short crc_rg = 0;
