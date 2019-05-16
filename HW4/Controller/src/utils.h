@@ -1,6 +1,9 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <string.h>
+#include <Arduino.h>
+
 // Tipo de dados de 8 bits sem sinal (0 - 255)
 typedef unsigned char byte;
 
@@ -50,6 +53,12 @@ void convert_to_bit_array(int value, bool *bit_array, int size);
 
 // Converte um array de bits para um array e retorna o mesmo
 int convert_bit_array_to_int(bool *bit_array, int size);
+
+// Printa a estrutura do frame
+void print_frame(CanFrame frame);
+
+// Convert uma string representando bits para um array de bits
+void string_to_it_array(char *bit_string, bool *bit_array);
 
 // Funcao que efetua o calculo do CRC
 short calculate_crc(bool *frame, int frame_size);
