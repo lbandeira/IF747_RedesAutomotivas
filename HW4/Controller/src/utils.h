@@ -58,7 +58,7 @@ int convert_bit_array_to_int(bool *bit_array, int size);
 void print_frame(CanFrame frame);
 
 // Convert uma string representando bits para um array de bits
-void string_to_it_array(char *bit_string, bool *bit_array);
+void string_to_bit_array(char *bit_string, bool *bit_array);
 
 // Funcao que efetua o calculo do CRC
 short calculate_crc(bool *frame, int frame_size);

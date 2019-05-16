@@ -43,7 +43,7 @@ void print_frame(CanFrame frame) {
     if (!rtr)
         Serial.println("(DATA)");
     else
-        Serial.println("REMOTE");
+        Serial.println("(REMOTE)");
 
     Serial.println("====================================================");
 
@@ -80,9 +80,11 @@ void print_frame(CanFrame frame) {
 
     // Printando o payload
     Serial.print("Payload: ");
-    for (int i = 0; i < dlc; i++) {
-        byte value = (byte) convert_bit_array_to_int(frame.payload + i, 8);
-        Serial.print(value, HEX);
+    if (!rtr) {
+        for (int i = 0; i < dlc; i++) {
+            byte value = (byte) convert_bit_array_to_int(frame.payload + i, 8);
+            Serial.print(value, HEX);
+        }   
     }
     Serial.println();
 
@@ -103,11 +105,11 @@ void print_frame(CanFrame frame) {
 }
 
 // Converte uma string representando bits para um array de bits
-void string_to_it_array(char *bit_string, bool *bit_array) {
+void string_to_bit_array(char *bit_string, bool *bit_array) {
     int bit_string_size = strlen(bit_string);
 
     for (int i = 0; i < bit_string_size; i++) {
-        bit_array[i] = bit_string - '0';
+        bit_array[i] = bit_string[i] - '0';
     }
 }
 
