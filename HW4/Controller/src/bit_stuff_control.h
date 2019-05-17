@@ -5,7 +5,8 @@
 
 extern bool bit_stuff_error;
 extern bool bit_stuff_flag;
+extern int current_state;
 
-void check_bit_stuff(bool rx, int current_state);
+void check_bit_stuff(bool rx);
 
 #endif

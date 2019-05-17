@@ -7,7 +7,7 @@ bool is_extended = false; // booleano que indica que eh um frame extendido ou na
 
 CanFrame frame;
 
-void frame_decoder(bool rx, int current_state) {
+void frame_decoder(bool rx) {
     // Caso o bit atual seja um it stuff, o decoder o ignora
     if (bit_stuff_flag)
         return;
@@ -15,8 +15,9 @@ void frame_decoder(bool rx, int current_state) {
     switch(current_state) {
         // Estado de IDLE
         case IDLE:
-            state_idx = 0;
-            current_state = ID_A;
+            if (rx == 0)
+                current_state = ID_A;
+                state_idx = 0;
             break;
 
         // Identificador do frame
@@ -45,6 +46,11 @@ void frame_decoder(bool rx, int current_state) {
                 current_state = ID_B;
             break;
             
+        case R0:
+            frame.r0 = rx;
+            current_state = DLC;
+            break;
+        
         case ID_B:
             frame.id_b[state_idx++] = rx;
             // recebeu os 11 bits do id_b
@@ -71,13 +77,14 @@ void frame_decoder(bool rx, int current_state) {
             frame.dlc[state_idx++] = rx;
             if (state_idx == 4) {
                 state_idx = 0;
-                if ((!is_extended && !frame.rtr_a_srr) || (is_extended && !frame.rtr_b))
-                    current_state = CRC; // frame remoto, logo nao tem payload
+
+                // converte o tamanho do payload (em bytes) para inteiro
+                dlc = min(8, convert_bit_array_to_int(frame.dlc, 4));
+
+                if ((!is_extended && frame.rtr_a_srr) || (is_extended && frame.rtr_b) || dlc == 0)
+                    current_state = CRC; // frame remoto ou com payload de tamanho 0
                 else
                     current_state = PAYLOAD; // frame de dados
-
-                // converte o tamanho do payload (em bytes )para inteiro
-                dlc = convert_bit_array_to_int(frame.dlc, 4);
 
                 // obtem o tamanho do payload em bits
                 payload_size = dlc * 8;

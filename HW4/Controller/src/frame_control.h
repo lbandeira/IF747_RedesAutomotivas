@@ -6,6 +6,6 @@
 
 extern CanFrame frame; // representa um can frame
 
-void frame_decoder(bool rx, int current_state);
+void frame_decoder(bool rx);
 
 #endif

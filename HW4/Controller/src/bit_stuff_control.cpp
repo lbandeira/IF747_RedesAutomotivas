@@ -7,7 +7,7 @@ bool bit_stuff_flag = false; // indica que o bit atual lido do bus eh um bit stu
 
 // Funcao responsavel por checar se ha erros de bit stuffing
 // Recebe como parametros o bit atual do rx e o estado atual
-void check_bit_stuff(bool rx, int current_state) {
+void check_bit_stuff(bool rx) {
     // se o estado atual for IDLE (start of frame)
     if (current_state == IDLE) {
         bits_count = 1;
@@ -34,6 +34,8 @@ void check_bit_stuff(bool rx, int current_state) {
             bits_count++;
         else
             bits_count = 1;
+
+        last_bit = rx;
     } else {
         bits_count = 1;
         last_bit = 0;

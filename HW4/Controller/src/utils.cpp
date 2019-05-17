@@ -82,7 +82,8 @@ void print_frame(CanFrame frame) {
     Serial.print("Payload: ");
     if (!rtr) {
         for (int i = 0; i < dlc; i++) {
-            byte value = (byte) convert_bit_array_to_int(frame.payload + i, 8);
+            bool *pointer = frame.payload + (i * 8);
+            byte value = (byte) convert_bit_array_to_int(pointer, 8);
             Serial.print(value, HEX);
         }   
     }
@@ -122,7 +123,7 @@ short calculate_crc(bool *frame, int frame_size) {
     for (int i = 0; i < frame_size; i++) {
         last_bit = (crc_rg >> 14) & 0x01;
         crc_next = frame[i] ^ last_bit;
-        crc_rg <<= 1;
+        crc_rg = (crc_rg << 1) & 0x7FFF;
         if (crc_next)
             crc_rg = crc_rg ^ 0x4599;
     }
