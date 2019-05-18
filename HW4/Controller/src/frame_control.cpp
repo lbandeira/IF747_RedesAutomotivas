@@ -1,5 +1,6 @@
 #include "frame_control.h"
 
+int frame_idx = 0; // representa o indice atual do frame
 int state_idx = 0; // indice representando o estado atual do frame
 int dlc = 0; // representa o tamanho (em bytes) do payload
 int payload_size = 0; // representa o tamanho do payload em bits
@@ -9,8 +10,14 @@ CanFrame frame;
 
 void frame_decoder(bool rx) {
     // Caso o bit atual seja um it stuff, o decoder o ignora
-    if (bit_stuff_flag)
+    if (bit_stuff_flag) {
         return;
+    }
+
+    if (current_state != IDLE) {
+        last_state = current_state;
+        frame.raw[frame_idx++] = rx;
+    }
 
     switch(current_state) {
         // Estado de IDLE
@@ -18,6 +25,7 @@ void frame_decoder(bool rx) {
             if (rx == 0)
                 current_state = ID_A;
                 state_idx = 0;
+                frame_idx = 0;
             break;
 
         // Identificador do frame
@@ -53,7 +61,7 @@ void frame_decoder(bool rx) {
         
         case ID_B:
             frame.id_b[state_idx++] = rx;
-            // recebeu os 11 bits do id_b
+            // recebeu os 18 bits do id_b
             if (state_idx == 18) {
                 state_idx = 0;
                 current_state = RTR_B;

@@ -46,6 +46,7 @@ typedef struct CanFrame
     bool ack;
     bool ack_delimiter;
     bool eof[7];
+    bool raw[128];
 } CanFrame;
 
 // Funcao auxiliar que transforma numero em um array de bits
@@ -56,6 +57,9 @@ int convert_bit_array_to_int(bool *bit_array, int size);
 
 // Printa a estrutura do frame
 void print_frame(CanFrame frame);
+
+// Printa as flags de erro
+void print_error_flags(bool ack_error_flag, bool bit_stuff_error, bool bit_error_flag, bool form_error_flag, bool crc_error_flag);
 
 // Convert uma string representando bits para um array de bits
 void string_to_bit_array(char *bit_string, bool *bit_array);

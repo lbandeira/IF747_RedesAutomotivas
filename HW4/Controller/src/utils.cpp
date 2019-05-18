@@ -105,6 +105,23 @@ void print_frame(CanFrame frame) {
     Serial.println(eof, HEX);
 }
 
+// Printa as flags de erro
+void print_error_flags(bool ack_error_flag, bool bit_stuff_error, bool bit_error_flag, bool form_error_flag, bool crc_error_flag) {
+    Serial.println("====================================================");
+    Serial.println("ERROR FLAGS");
+    Serial.println("====================================================");
+    Serial.print("BIT ERROR: ");
+    Serial.println(bit_error_flag);
+    Serial.print("STUFF ERROR: ");
+    Serial.println(bit_stuff_error);
+    // Serial.print("CRC ERROR: ");
+    // Serial.println(crc_error_flag);
+    Serial.print("FORM ERROR: ");
+    Serial.println(form_error_flag);
+    Serial.print("ACK ERROR: ");
+    Serial.println(ack_error_flag);
+}
+
 // Converte uma string representando bits para um array de bits
 void string_to_bit_array(char *bit_string, bool *bit_array) {
     int bit_string_size = strlen(bit_string);
