@@ -7,6 +7,9 @@
 // Tipo de dados de 8 bits sem sinal (0 - 255)
 typedef unsigned char byte;
 
+// Tipo de dados de 64 bits
+typedef unsigned long long ull;
+
 // Indices utilizados para auxiliar a construcao do frame
 #define IDX_SOF 0
 #define IDX_ID_A 1
@@ -26,7 +29,7 @@ typedef unsigned char byte;
 enum FrameState {
     IDLE, ID_A, RTR_A_SRR, IDE, R0, ID_B,
     RTR_B, R1_R0, DLC, PAYLOAD, CRC, CRC_DELIM,
-    ACK, ACK_DELIM, EOFRAME
+    ACK, ACK_DELIM, EOFRAME, ERR_FLAG, ERR_DELIM, OVERLOAD_FLAG, OVERLOAD_DELIM
 };
 
 // Struct que representa um frame can
@@ -50,7 +53,7 @@ typedef struct CanFrame
 } CanFrame;
 
 // Funcao auxiliar que transforma numero em um array de bits
-void convert_to_bit_array(int value, bool *bit_array, int size);
+void convert_to_bit_array(ull value, bool *bit_array, int size);
 
 // Converte um array de bits para um array e retorna o mesmo
 long convert_bit_array_to_int(bool *bit_array, int size);
@@ -66,5 +69,8 @@ void string_to_bit_array(char *bit_string, bool *bit_array);
 
 // Funcao que efetua o calculo do CRC
 short calculate_crc(bool *frame, int frame_size);
+
+// Funcao que printa um array de bits
+void print_bit_array(bool *bit_array, int bit_array_size);
 
 #endif

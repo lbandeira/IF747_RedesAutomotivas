@@ -14,6 +14,10 @@ void frame_decoder(bool rx) {
         return;
     }
 
+    if(form_error_flag | ack_error_flag | crc_error_flag){
+        current_state = ERR_FLAG;
+    }
+
     if (current_state != IDLE) {
         if (last_state == IDLE)
             frame.raw[frame_idx++] = 0;

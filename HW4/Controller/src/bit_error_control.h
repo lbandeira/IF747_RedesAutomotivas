@@ -7,6 +7,7 @@
 extern bool arbitration_flag;
 extern bool bit_error_flag;
 
+
 void bit_error_control(bool rx, bool tx);
 
 #endif

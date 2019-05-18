@@ -1,6 +1,7 @@
 #include "form_error_control.h"
 
 bool form_error_flag = false;
+int eof_idx = 1;
 
 void form_error_control(bool rx){
     bool bit_rtr_a_srr = true;
@@ -12,6 +13,7 @@ void form_error_control(bool rx){
 
     switch(last_state){
         case RTR_A_SRR:
+            eof_idx = 1;
             bit_rtr_a_srr = rx;
             break;
         
@@ -34,9 +36,10 @@ void form_error_control(bool rx){
             break;
         
         case EOFRAME:
-            if(!rx){
+            if(!rx && eof_idx < 7){
                 form_error_flag = true;
             }
+            eof_idx++;
             break;
         
         default:

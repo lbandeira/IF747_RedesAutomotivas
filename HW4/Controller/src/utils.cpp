@@ -1,9 +1,9 @@
 #include "utils.h"
 
 // Funcao auxiliar que transforma numero em um array de bits
-void convert_to_bit_array(int value, bool *bit_array, int size) {
-    for (int i = 0; i < size; i++) {
-        bit_array[i] = value & 0x01;
+void convert_to_bit_array(ull value, bool *bit_array, int size) {
+    while (size--) {
+        bit_array[size] = value & 0x01;
         value >>= 1;
     }
 }
@@ -146,4 +146,12 @@ short calculate_crc(bool *frame, int frame_size) {
     }
 
     return crc_rg;
+}
+
+// Funcao que printa um array de bits
+void print_bit_array(bool *bit_array, int bit_array_size) {
+    for (int i = 0; i < bit_array_size; i++) {
+        Serial.print(bit_array[i]);
+    }
+    Serial.println();
 }

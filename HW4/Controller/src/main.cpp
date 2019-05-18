@@ -6,8 +6,9 @@
 #include "bit_error_control.h"
 #include "form_error_control.h"
 #include "crc_error_control.h"
+#include "bit_stuff_insert.h"
 
-bool rx[128] = { 0 };
+bool rx[256] = { 0 };
 int current_state;
 int last_state;
 
@@ -100,8 +101,51 @@ void test_crc() {
   Serial.println(crc, HEX);
 }
 
+void test_frame_transmission() {
+  // Testando com um frame standard de dados
+  bool buffer[256];
+  bool frame_id[11];
+  byte dlc = 8;
+  convert_to_bit_array(0x0672, frame_id, 11);
+  bool payload[64];
+  convert_to_bit_array(0xAAAAAAAAAAAAAAAA, payload, (int)(dlc * 8));
+  bool is_extended = false;
+  bool is_data = true;
+
+  int frame_size = build_frame(frame_id, payload, buffer, is_extended, is_data, dlc);
+
+  // printando o frame id
+  Serial.println("Frame ID");
+  print_bit_array(frame_id, 11);
+
+  // printando o payload
+  Serial.println("Payload");
+  print_bit_array(payload, dlc * 8);
+
+  // printando todo o frame construido
+  Serial.println("Frame");
+  print_bit_array(buffer, frame_size);
+
+  // testando frame com o bit stuff inserido
+  bool last_bit = true;
+  bool stuffed_frame[256];
+  int stuff_idx = 0;
+  for (int i = 0; i < frame_size; ) {
+    if (flag_stuff)
+      bit_stuff_insert(buffer[i], last_bit);
+    else
+      bit_stuff_insert(buffer[i++], last_bit);
+    stuffed_frame[stuff_idx++] = Tx;
+    last_bit = Tx;
+  }
+
+  // Printando o stuffed frame
+  Serial.println("Stuffed Frame");
+  print_bit_array(stuffed_frame, stuff_idx);
+}
+
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   reset_all();
 
@@ -125,13 +169,14 @@ void setup() {
   // test_frame(buffer);
   #elif defined(ESP32)
   // Testando erro de bit stuffing
-  test_frame((char *)bit_stuff_error_frame);
+  // test_frame((char *)bit_stuff_error_frame);
   // Testando frame com ack error
-  test_frame((char *)ack_error_frame);
+  // test_frame((char *)ack_error_frame);
   // Testando frame com form error
-  test_frame((char *)form_error_frame);
+  // test_frame((char *)form_error_frame);
   // Testando frame com crc error
-  test_frame((char *)crc_error_frame);
+  // test_frame((char *)crc_error_frame);
+  test_frame_transmission();
   #endif
 
   // test_crc();

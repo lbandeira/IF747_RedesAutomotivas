@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "frame_builder.h"
 
-void build_frame(bool *frame_id, bool *payload, bool *frame, bool is_extended, bool is_data, int dlc) {
+int build_frame(bool *frame_id, bool *payload, bool *frame, bool is_extended, bool is_data, int dlc) {
     int idx_crc;
     int idx_crc_delimiter;
     int idx_ack;
@@ -81,7 +81,7 @@ void build_frame(bool *frame_id, bool *payload, bool *frame, bool is_extended, b
     memcpy(frame + idx_crc, crc_array, 15);
 
     // Preenchendo o CRC delimiter, deve ser recessivo (1)
-    idx_crc_delimiter = idx_crc + 1;
+    idx_crc_delimiter = idx_crc + 15;
     frame[idx_crc_delimiter] = true;
 
     // Preenchendo o ACK slot, transmissor envia recessivo (1)
@@ -95,4 +95,6 @@ void build_frame(bool *frame_id, bool *payload, bool *frame, bool is_extended, b
     // Preenchendo o EOF, 7 ultimos bits recessivos (1)
     idx_eof = idx_ack_delimiter + 1;
     memset(frame + idx_eof, true, 7);
+
+    return idx_eof + 7;
 }
