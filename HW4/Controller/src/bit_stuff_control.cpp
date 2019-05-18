@@ -15,12 +15,13 @@ void check_bit_stuff(bool rx) {
     }
     // caso seja qualquer outro estado antes do crc delimiter
     // (o bit stuff so eh aplicado ate o crc)
-    else if (current_state <= CRC) {
+    else if (current_state > IDLE && current_state <= CRC) {
         // reseta a variavel que indica se o bit lido eh bit stuff
         if (bit_stuff_flag)
             bit_stuff_flag = false;
         // caso haja mais de 5 bits consecutivos iguais, um erro de bit stuffing eh detectado
         if (bits_count == 6) {
+            Serial.println("BIT STUFF ERROR");
             bit_stuff_error = true;
             bits_count = 1;
         } else if (bits_count == 5) {

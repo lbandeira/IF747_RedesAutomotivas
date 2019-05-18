@@ -9,12 +9,14 @@ bool is_extended = false; // booleano que indica que eh um frame extendido ou na
 CanFrame frame;
 
 void frame_decoder(bool rx) {
-    // Caso o bit atual seja um it stuff, o decoder o ignora
+    // Caso o bit atual seja um bit stuff, o decoder o ignora
     if (bit_stuff_flag) {
         return;
     }
 
     if (current_state != IDLE) {
+        if (last_state == IDLE)
+            frame.raw[frame_idx++] = 0;
         last_state = current_state;
         frame.raw[frame_idx++] = rx;
     }
@@ -87,7 +89,7 @@ void frame_decoder(bool rx) {
                 state_idx = 0;
 
                 // converte o tamanho do payload (em bytes) para inteiro
-                dlc = min(8, convert_bit_array_to_int(frame.dlc, 4));
+                dlc = min(8, (int)convert_bit_array_to_int(frame.dlc, 4));
 
                 if ((!is_extended && frame.rtr_a_srr) || (is_extended && frame.rtr_b) || dlc == 0)
                     current_state = CRC; // frame remoto ou com payload de tamanho 0

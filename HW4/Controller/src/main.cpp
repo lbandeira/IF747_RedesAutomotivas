@@ -11,7 +11,7 @@ bool rx[128] = { 0 };
 int current_state;
 int last_state;
 
-const char PROGMEM test_frames[][256] = {
+const char test_frames[][256] PROGMEM = {
   "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001000010100011011111111",
   "011001110010000011111001010101010101010101010101010101010101010101010101010101011001100111011011111111",
   "011001110010000011101010101010101010101010101010101010101010101010100001001001011101011111111",
@@ -27,9 +27,10 @@ const char PROGMEM test_frames[][256] = {
   "010001001001111100000100000111110010100100001010011111001101011111111"
 };
 
-const char PROGMEM ack_error_frame[] = "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001000010100011111111111";
-const char PROGMEM form_error_frame[] = "0100010010011111000001000001111100100001000101010101010101010101010101010101010101010101010101010101010101011110111110101011011101111";
-const char PROGMEM crc_error_frame[] = "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001100010100011011111111";
+const char bit_stuff_error_frame[] PROGMEM = "011001110010000100010101010101010101010101010101010101010101010101010101010101010100000000010100011111111111";
+const char ack_error_frame[] PROGMEM = "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001000010100011111111111";
+const char form_error_frame[] PROGMEM = "0100010010011111000001000001111100100001000101010101010101010101010101010101010101010101010101010101010101011110111110101011011111110";
+const char crc_error_frame[] PROGMEM = "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001100010100011011111111";
 
 void test_frame_control() {
   for (int f = 0; f < 13; f++) {
@@ -102,14 +103,36 @@ void test_crc() {
 void setup() {
   Serial.begin(9600);
 
+  reset_all();
+
   // test_frame_control();
 
+  #if defined(__AVR__)
+  char buffer[256];
+  // Testando frame com ack error
+  // strcpy_P(buffer, ack_error_frame);
+  // test_frame(buffer);
+  // Testando frame com form error
+  strcpy_P(buffer, form_error_frame);
+  Serial.println(buffer);
+  test_frame(buffer);
+  for (int i = 0; i < 128; i++) {
+    Serial.print(frame.raw[i]);
+  }
+  Serial.println();
+  // Testando frame com crc error
+  // strcpy_P(buffer, crc_error_frame);
+  // test_frame(buffer);
+  #elif defined(ESP32)
+  // Testando erro de bit stuffing
+  test_frame((char *)bit_stuff_error_frame);
   // Testando frame com ack error
   test_frame((char *)ack_error_frame);
   // Testando frame com form error
   test_frame((char *)form_error_frame);
   // Testando frame com crc error
   test_frame((char *)crc_error_frame);
+  #endif
 
   // test_crc();
 }

@@ -9,8 +9,8 @@ void convert_to_bit_array(int value, bool *bit_array, int size) {
 }
 
 // Converte um array de bits para um array e retorna o mesmo
-int convert_bit_array_to_int(bool *bit_array, int size) {
-    int result = 0;
+long convert_bit_array_to_int(bool *bit_array, int size) {
+    long result = 0;
 
     for (int i = 0; i < size; i++) {
         result <<= 1;
@@ -22,11 +22,11 @@ int convert_bit_array_to_int(bool *bit_array, int size) {
 
 // Printa a estrutura do frame
 void print_frame(CanFrame frame) {
-    int id_a = convert_bit_array_to_int(frame.id_a, 11);
-    int id_b = convert_bit_array_to_int(frame.id_b, 18);
-    int dlc = convert_bit_array_to_int(frame.dlc, 4);
-    int crc = convert_bit_array_to_int(frame.crc, 15);
-    int eof = convert_bit_array_to_int(frame.eof, 7);
+    long id_a = convert_bit_array_to_int(frame.id_a, 11);
+    long id_b = convert_bit_array_to_int(frame.id_b, 18);
+    long dlc = convert_bit_array_to_int(frame.dlc, 4);
+    long crc = convert_bit_array_to_int(frame.crc, 15);
+    long eof = convert_bit_array_to_int(frame.eof, 7);
     bool rtr;
     bool is_extended = frame.ide;
 

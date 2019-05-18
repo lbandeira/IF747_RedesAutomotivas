@@ -53,7 +53,7 @@ typedef struct CanFrame
 void convert_to_bit_array(int value, bool *bit_array, int size);
 
 // Converte um array de bits para um array e retorna o mesmo
-int convert_bit_array_to_int(bool *bit_array, int size);
+long convert_bit_array_to_int(bool *bit_array, int size);
 
 // Printa a estrutura do frame
 void print_frame(CanFrame frame);
