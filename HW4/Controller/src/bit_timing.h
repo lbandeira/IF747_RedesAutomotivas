@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 //Variaveis do calculo do Timequanta
 #define TQ_SYNC 1
 #define TQ_PROP 1
@@ -17,3 +19,32 @@
 
 #define RESYNC_PIN 2
 #define HARD_SYNC_PIN 3
+
+//Variaveis do Bit timing logic
+extern bool writing_point;
+extern bool sample_point;
+
+//Variaveis da CAN
+bool bus_idle;
+
+void setupInterrupt() ;
+
+int getTqFrequency(); 
+
+void btl_setup();
+
+void btl_state_machine() ;
+
+void pins_setup() ;
+
+void resync_isr() ;
+
+void hard_sync_isr() ;
+
+void plot_setup() ;
+
+void update_plotter_values();
+
+void write_plot();
+
+
