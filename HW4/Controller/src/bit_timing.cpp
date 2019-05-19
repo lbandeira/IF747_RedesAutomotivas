@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <TimeOne.h>
 #include "bit_timing.h"
 
 int state_new;
@@ -29,7 +30,7 @@ bool bus_idle;
 int seg_plotter_state;
 bool tq_plotter_state;
 
-
+/*
 // esse metodo eh responsavel por fazer o setup inicial dos regs que iram tratar na interrupcao
 void setupInterrupt() {
    // desativando as interrupcoes
@@ -61,7 +62,7 @@ void setupInterrupt() {
 
   // reabilitando interrupcoes
   interrupts();
-}
+}*/
 
 int getTqFrequency() {
   double bitTime = 1.0 / BIT_RATE;
@@ -288,9 +289,11 @@ void write_plot() {
 void setup() {
   Serial.begin(9600);
   btl_setup();
-  setupInterrupt();
+  Timer1.initialize(BIT_RATE);
+  //setupInterrupt();
   plot_setup();
   pins_setup();
+  Timer1.attachInterrupt(ISR);
 }
 
 void loop() {

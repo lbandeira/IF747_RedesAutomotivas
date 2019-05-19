@@ -7,7 +7,7 @@ const int SPI_CS_PIN = 9;
 
 MCP_CAN CAN(SPI_CS_PIN);                                    // Set CS pin
 
-#define PID_ENGIN_PRM       0x0C
+#define PID_ENGIN_RPM       0x0C
 #define PID_VEHICLE_SPEED   0x0D
 #define PID_COOLANT_TEMP    0x05
 #define PID_FUEL_STATUS     0x03
@@ -65,14 +65,12 @@ void setup()
 
 void loop()
 {
-    taskCanRecv();
-
     int c;
     for(c = 0; c < 5; c++){
       sendPid(PIDs[c]);
       PID_INPUT = 0;
-      delay(1000);
-
+      taskCanRecv();
+      delay(5000);
     }
 
 }
@@ -81,7 +79,7 @@ void taskCanRecv()
 {
     unsigned char len = 0;
     unsigned char buf[8];
-
+    int res;
     if(CAN_MSGAVAIL == CAN.checkReceive())                   // check if get data
     {
         CAN.readMsgBuf(&len, buf);    // read data,  len: data length, buf: data buf
@@ -96,20 +94,29 @@ void taskCanRecv()
             Serial.print("\t");
         }
         Serial.println();
-      /*
-        switch(){               //translate the data
+
+        switch(buf[2]){               //translate the data
           case 0x0C:
           //  (256*A + B)/4
+          res = (256*buf[3] + buf[4])/4;
+          break;
           case 0x0D:
           //  A
+          res = buf[3];
+          break;
           case 0x05:
           //  A-40
+          res = buf[3] - 40;
+          break;
           case 0x03:
           // Bit encoded
           case 0x0A:
           //  3*A
+          res = 3*buf[3];
+          break;
           }
-      */
+          Serial.println(res);
+
     }
 }
 

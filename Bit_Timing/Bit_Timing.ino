@@ -1,4 +1,6 @@
 #include <Arduino.h>
+#include <TimerOne.h>
+
 
 //Variaveis do calculo do Timequanta
 #define TQ_SYNC 1
@@ -307,9 +309,12 @@ void write_plot() {
 void setup() {
   Serial.begin(9600);
   btl_setup();
-  setupInterrupt();
+  
+  Timer1.initialize(BIT_RATE);
+  //setupInterrupt();
   plot_setup();
   pins_setup();
+  Timer1.attachInterrupt(ISR);
 }
 
 void loop() {
