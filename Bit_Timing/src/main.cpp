@@ -50,6 +50,10 @@ bool bus_idle;
 int seg_plotter_state;
 bool tq_plotter_state;
 
+void interrupt_routine() {
+  new_tq = true;
+  tq_plotter_state = !tq_plotter_state;
+}
 
 // esse metodo eh responsavel por fazer o setup inicial dos regs que iram tratar na interrupcao
 void setupInterrupt() {
@@ -91,11 +95,6 @@ int getTqFrequency() {
   return 1.0 / tq;
 }
 
-ISR(TIMER1_COMPA_vect) {
-  new_tq = true;
-  tq_plotter_state = !tq_plotter_state;
-}
-
 void btl_setup(){
   state_new = SYNC;
   tq_tot = 0;
@@ -108,6 +107,33 @@ void btl_setup(){
   resync = false;
   resync_enable = false;
   hard_sync = false;
+}
+
+void update_plotter_values() {
+  switch (state_old) {
+    case SYNC:
+      seg_plotter_state = 1;
+      break;
+
+    case SEG_1:
+      seg_plotter_state = 3;
+      break;
+
+    case WINDOW_1:
+      seg_plotter_state = 5;
+      break;
+
+    case SEG_2:
+      seg_plotter_state = 7;
+      break;
+
+    case WINDOW_2:
+      seg_plotter_state = 9;
+      break;
+
+    default:
+      break;
+  }
 }
 
 void btl_state_machine() {
@@ -245,13 +271,6 @@ void btl_state_machine() {
   } 
 }
 
-void pins_setup() {
-  pinMode(RESYNC_PIN, INPUT_PULLUP);
-  pinMode(HARD_SYNC_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(RESYNC_PIN), resync_isr, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(HARD_SYNC_PIN), hard_sync_isr, CHANGE);
-}
-
 void resync_isr() {
   resync = true;
 }
@@ -260,36 +279,16 @@ void hard_sync_isr() {
   hard_sync = true;
 }
 
+void pins_setup() {
+  pinMode(RESYNC_PIN, INPUT_PULLUP);
+  pinMode(HARD_SYNC_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(RESYNC_PIN), resync_isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(HARD_SYNC_PIN), hard_sync_isr, CHANGE);
+}
+
 void plot_setup() {
   seg_plotter_state = -1;
   tq_plotter_state = false;
-}
-
-void update_plotter_values() {
-  switch (state_old) {
-    case SYNC:
-      seg_plotter_state = 1;
-      break;
-
-    case SEG_1:
-      seg_plotter_state = 3;
-      break;
-
-    case WINDOW_1:
-      seg_plotter_state = 5;
-      break;
-
-    case SEG_2:
-      seg_plotter_state = 7;
-      break;
-
-    case WINDOW_2:
-      seg_plotter_state = 9;
-      break;
-
-    default:
-      break;
-  }
 }
 
 void write_plot() {
@@ -314,7 +313,7 @@ void setup() {
   //setupInterrupt();
   plot_setup();
   pins_setup();
-  Timer1.attachInterrupt(ISR);
+  Timer1.attachInterrupt(interrupt_routine);
 }
 
 void loop() {

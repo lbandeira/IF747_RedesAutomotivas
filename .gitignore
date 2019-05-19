@@ -2,3 +2,5 @@
 HW4/Controller/\.vscode/
 
 *.bin
+
+*.ipch
