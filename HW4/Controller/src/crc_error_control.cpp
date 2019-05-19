@@ -1,6 +1,7 @@
 #include "crc_error_control.h"
 
 bool crc_error_flag = false;
+bool valid_frame = false;
 bool crc_bit_array[15];
 int crc_idx = 0;
 
@@ -34,6 +35,8 @@ void crc_error_control(bool rx) {
                 crc_error_flag = true;
                 Serial.print("CRC ERROR: ");
                 Serial.println(crc_error_flag);
+            } else {
+                valid_frame = true;
             }
         }
     } else {

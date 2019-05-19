@@ -1,7 +1,7 @@
 #include "utils.h"
 
 // Funcao auxiliar que transforma numero em um array de bits
-void convert_to_bit_array(ull value, bool *bit_array, int size) {
+void convert_to_bit_array(uint64_t value, bool *bit_array, int size) {
     while (size--) {
         bit_array[size] = value & 0x01;
         value >>= 1;
@@ -22,11 +22,11 @@ long convert_bit_array_to_int(bool *bit_array, int size) {
 
 // Printa a estrutura do frame
 void print_frame(CanFrame frame) {
-    long id_a = convert_bit_array_to_int(frame.id_a, 11);
-    long id_b = convert_bit_array_to_int(frame.id_b, 18);
-    long dlc = convert_bit_array_to_int(frame.dlc, 4);
-    long crc = convert_bit_array_to_int(frame.crc, 15);
-    long eof = convert_bit_array_to_int(frame.eof, 7);
+    uint32_t id_a = convert_bit_array_to_int(frame.id_a, 11);
+    uint32_t id_b = convert_bit_array_to_int(frame.id_b, 18);
+    uint32_t dlc = convert_bit_array_to_int(frame.dlc, 4);
+    uint32_t crc = convert_bit_array_to_int(frame.crc, 15);
+    uint32_t eof = convert_bit_array_to_int(frame.eof, 7);
     bool rtr;
     bool is_extended = frame.ide;
 

@@ -28,8 +28,7 @@ void bit_stuff_insert(bool unstuffed_frame, bool last_bit){
     // }
 
     if(flag_stuff){
-        Tx =  !last_bit;
-      
+        Tx = !last_bit;
         cont = 1;
         flag_stuff = false;
     }
@@ -38,7 +37,6 @@ void bit_stuff_insert(bool unstuffed_frame, bool last_bit){
             //Conta as ocorrencias
             if(unstuffed_frame == last_bit) {
                 cont++;
-                //Serial.println(cont);
             }
             else {
                 cont = 1;
@@ -47,18 +45,16 @@ void bit_stuff_insert(bool unstuffed_frame, bool last_bit){
             if(cont == 5){
                 //Insere o stuff
                 flag_stuff = true;
-                //Serial.println(">>> Inserindo bit stuff <<<");
             }  
-            Tx = unstuffed_frame;
         }
         else{
             cont = 1;
             flag_stuff = false;
         }
-
+        Tx = unstuffed_frame;
     }
-    // if(current_state == IDLE){
-    //     cont = 1;
-    //     flag_stuff = 0;
-    // }
+    if(current_state == IDLE){
+        cont = 1;
+        flag_stuff = 0;
+    }
 }

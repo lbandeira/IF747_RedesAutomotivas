@@ -53,7 +53,7 @@ typedef struct CanFrame
 } CanFrame;
 
 // Funcao auxiliar que transforma numero em um array de bits
-void convert_to_bit_array(ull value, bool *bit_array, int size);
+void convert_to_bit_array(uint64_t value, bool *bit_array, int size);
 
 // Converte um array de bits para um array e retorna o mesmo
 long convert_bit_array_to_int(bool *bit_array, int size);

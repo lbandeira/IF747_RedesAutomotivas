@@ -6,6 +6,9 @@ int dlc = 0; // representa o tamanho (em bytes) do payload
 int payload_size = 0; // representa o tamanho do payload em bits
 bool is_extended = false; // booleano que indica que eh um frame extendido ou nao
 
+int err_flag_count = 0;
+int err_delim_count = 0;
+
 CanFrame frame;
 
 void frame_decoder(bool rx) {
@@ -14,9 +17,9 @@ void frame_decoder(bool rx) {
         return;
     }
 
-    if(form_error_flag | ack_error_flag | crc_error_flag){
-        current_state = ERR_FLAG;
-    }
+    // if(form_error_flag | ack_error_flag | crc_error_flag){
+    //     current_state = ERR_FLAG;
+    // }
 
     if (current_state != IDLE) {
         if (last_state == IDLE)
@@ -116,8 +119,10 @@ void frame_decoder(bool rx) {
 
         case CRC:
             frame.crc[state_idx++] = rx;
+            // Serial.print(rx);
             // recebeu todos os bits do CRC
             if (state_idx == 15) {
+                // Serial.println();
                 state_idx = 0;
                 current_state = CRC_DELIM;
             }
@@ -145,6 +150,28 @@ void frame_decoder(bool rx) {
                 state_idx = 0;
             }
             break;
+        
+        // case ERR_FLAG:
+        //     if(rx == false){
+        //         err_flag_count++;
+        //         current_state = ERR_FLAG;
+        //     }
+        //     else if((rx == true) && (err_flag_count >= 6)){
+        //         err_delim_count = 0;
+        //         current_state = ERR_DELIM;
+        //     }
+        //     break;
+
+        // case ERR_DELIM:
+        //     if((rx == true) && (err_delim_count <= 7)){
+        //         err_delim_count++;
+        //         current_state = ERR_DELIM;
+        //     }
+        //     else{
+        //         err_flag_count = 0;
+        //         err_delim_count = 0;
+        //         current_state = ERR_DELIM;
+        //     }
 
         default:
             break;

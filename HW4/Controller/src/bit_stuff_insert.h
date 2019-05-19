@@ -3,6 +3,7 @@
 
 #include "utils.h"
 #include "bit_error_control.h"
+#include "crc_error_control.h"
 
 extern bool Tx;
 extern bool writing_point;

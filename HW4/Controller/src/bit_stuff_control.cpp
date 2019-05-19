@@ -1,6 +1,6 @@
 #include "bit_stuff_control.h"
 
-bool last_bit; // ultimo bit recebido pelo bus
+bool last_bit_rx; // ultimo bit recebido pelo bus
 byte bits_count; // variavel de 8 bits para contar numero de bits iguais consecutivos
 bool bit_stuff_error = false; // indica que houve um erro de bit stuffing
 bool bit_stuff_flag = false; // indica que o bit atual lido do bus eh um bit stuff
@@ -11,7 +11,7 @@ void check_bit_stuff(bool rx) {
     // se o estado atual for IDLE (start of frame)
     if (current_state == IDLE) {
         bits_count = 1;
-        last_bit = 0; // o bit do start of frame eh dominante (0)
+        last_bit_rx = 0; // o bit do start of frame eh dominante (0)
     }
     // caso seja qualquer outro estado antes do crc delimiter
     // (o bit stuff so eh aplicado ate o crc)
@@ -31,15 +31,15 @@ void check_bit_stuff(bool rx) {
         }
         // se o bit atual for igua ao anterior, incrementa o contador
         // caso contrario o contador eh resetado
-        if (rx == last_bit)
+        if (rx == last_bit_rx)
             bits_count++;
         else
             bits_count = 1;
 
-        last_bit = rx;
+        last_bit_rx = rx;
     } else {
         bits_count = 1;
-        last_bit = 0;
+        last_bit_rx = 0;
         bit_stuff_flag = false;
     }
 }

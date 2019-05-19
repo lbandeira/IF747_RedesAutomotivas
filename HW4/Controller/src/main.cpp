@@ -9,8 +9,12 @@
 #include "bit_stuff_insert.h"
 
 bool rx[256] = { 0 };
+bool bus[256] = { 0 };
+int bus_idx = 0;
 int current_state;
 int last_state;
+bool last_bit_tx = true;
+bool Rx;
 
 const char test_frames[][256] PROGMEM = {
   "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001000010100011011111111",
@@ -60,12 +64,14 @@ void test_frame_control() {
 void reset_all() {
   current_state = IDLE;
   last_state = IDLE;
+  last_bit_tx = true;
   bit_stuff_flag = false;
   bit_error_flag = false;
   bit_stuff_error = false;
   form_error_flag = false;
   ack_error_flag = false;
   crc_error_flag = false;
+  bus_idx = 0;
 }
 
 void test_frame(char *bit_string) {
@@ -101,47 +107,79 @@ void test_crc() {
   Serial.println(crc, HEX);
 }
 
-void test_frame_transmission() {
-  // Testando com um frame standard de dados
-  bool buffer[256];
-  bool frame_id[11];
-  byte dlc = 8;
-  convert_to_bit_array(0x0672, frame_id, 11);
-  bool payload[64];
-  convert_to_bit_array(0xAAAAAAAAAAAAAAAA, payload, (int)(dlc * 8));
+int create_frame(bool *buffer, uint32_t id, uint64_t payload, bool is_extended, bool is_data, int dlc) {
+  int frame_id_size = is_extended ? 29 : 11;
+  int payload_size = dlc * 8;
+  bool frame_id[frame_id_size];
+  bool payload_array[payload_size];
+
+  // Convertendo id para array de bits
+  convert_to_bit_array(id, frame_id, frame_id_size);
+
+  // Convertendo payload para array de bits
+  convert_to_bit_array(payload, payload_array, payload_size);
+
+  // Construindo o frame e transformando em um array de bits retornando o numero de bits
+  return build_frame(frame_id, payload_array, buffer, is_extended, is_data, dlc);
+}
+
+int prepare_transmission(bool *unstuffed_frame) {
+  // Editar valores de acordo com o frame que vai ser transmitido
+  uint32_t id = 0x0672;
+  uint64_t payload = 0xAAAAAAAAAAAAAAAA;
   bool is_extended = false;
   bool is_data = true;
+  int dlc = 8;
 
-  int frame_size = build_frame(frame_id, payload, buffer, is_extended, is_data, dlc);
+  // Criando o frame sem bit stuff
+  return create_frame(unstuffed_frame, id, payload, is_extended, is_data, dlc);
+}
 
-  // printando o frame id
-  Serial.println("Frame ID");
-  print_bit_array(frame_id, 11);
+void transmit_frame(bool current_bit) {
+  bit_stuff_insert(current_bit, last_bit_tx);
+  last_bit_tx = Tx;
+}
 
-  // printando o payload
-  Serial.println("Payload");
-  print_bit_array(payload, dlc * 8);
+void receive_frame() {
+  check_bit_stuff(Rx);
+  frame_decoder(Rx);
+  ack_error_control(Rx);
+  // bit_error_control(rx[i]);
+  form_error_control(Rx);
+  crc_error_control(Rx);
+}
 
-  // printando todo o frame construido
-  Serial.println("Frame");
-  print_bit_array(buffer, frame_size);
+void test_rx_tx() {
+  // Array de bits que representa o frame sem bit stuff
+  bool unstuffed_frame[128];
+  // Tamanho do frame sem bit stuff
+  int unstuffed_frame_size;
 
-  // testando frame com o bit stuff inserido
-  bool last_bit = true;
-  bool stuffed_frame[256];
-  int stuff_idx = 0;
-  for (int i = 0; i < frame_size; ) {
+  // Montando o frame sem bit stuff
+  unstuffed_frame_size = prepare_transmission(unstuffed_frame);
+
+  // Loop que representa o envio de um bit no bus, assim como a leitura do mesmo
+  for (int i = 0; i < unstuffed_frame_size; ) {
+    // Simulando trasmissao no bus
     if (flag_stuff)
-      bit_stuff_insert(buffer[i], last_bit);
+      transmit_frame(unstuffed_frame[i]);
     else
-      bit_stuff_insert(buffer[i++], last_bit);
-    stuffed_frame[stuff_idx++] = Tx;
-    last_bit = Tx;
+      transmit_frame(unstuffed_frame[i++]);
+    bus[bus_idx++] = Tx;
+
+    // Simulando recepcao no bus
+    Rx = bus[--bus_idx];
+    receive_frame();
   }
 
-  // Printando o stuffed frame
-  Serial.println("Stuffed Frame");
-  print_bit_array(stuffed_frame, stuff_idx);
+  // Printando o frame recebido e construido
+  print_frame(frame);
+
+  // Printando flags de erro
+  print_error_flags(ack_error_flag, bit_stuff_error, bit_error_flag, form_error_flag, crc_error_flag);
+
+  // Printando o frame em binario
+  print_bit_array(frame.raw, frame_idx);
 }
 
 void setup() {
@@ -152,21 +190,18 @@ void setup() {
   // test_frame_control();
 
   #if defined(__AVR__)
-  char buffer[256];
+  // char buffer[256];
   // Testando frame com ack error
   // strcpy_P(buffer, ack_error_frame);
   // test_frame(buffer);
   // Testando frame com form error
-  strcpy_P(buffer, form_error_frame);
-  Serial.println(buffer);
-  test_frame(buffer);
-  for (int i = 0; i < 128; i++) {
-    Serial.print(frame.raw[i]);
-  }
-  Serial.println();
+  // strcpy_P(buffer, form_error_frame);
+  // test_frame(buffer);
   // Testando frame com crc error
   // strcpy_P(buffer, crc_error_frame);
   // test_frame(buffer);
+
+  test_rx_tx();
   #elif defined(ESP32)
   // Testando erro de bit stuffing
   // test_frame((char *)bit_stuff_error_frame);
@@ -176,10 +211,11 @@ void setup() {
   // test_frame((char *)form_error_frame);
   // Testando frame com crc error
   // test_frame((char *)crc_error_frame);
-  test_frame_transmission();
+
+  // Testando encoder/decoder simulando o bus
+  test_rx_tx();
   #endif
 
-  // test_crc();
 }
 
 void loop() {
