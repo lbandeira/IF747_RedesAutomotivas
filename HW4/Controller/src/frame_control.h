@@ -6,9 +6,11 @@
 #include "form_error_control.h"
 #include "ack_error_control.h"
 #include "crc_error_control.h"
+#include "bit_error_control.h"
 
 extern CanFrame frame; // representa um can frame
 extern int frame_idx; // representa o indice atual do frame
+extern bool is_idle; // booleano que indica se o bus esta em idle
 
 void frame_decoder(bool rx);
 

@@ -41,10 +41,14 @@ void form_error_control(bool rx){
             }
             eof_idx++;
             break;
-        
+
+        case INTER:
+            if((!rx) && (inter_count <= 1)){
+                current_state = OVERLOAD_FLAG;
+            }
+            break;
+
         default:
             break;
     }
-    if (form_error_flag)
-        Serial.println(rx);
 }

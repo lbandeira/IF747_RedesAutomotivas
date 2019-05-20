@@ -29,8 +29,10 @@ typedef unsigned long long ull;
 enum FrameState {
     IDLE, ID_A, RTR_A_SRR, IDE, R0, ID_B,
     RTR_B, R1_R0, DLC, PAYLOAD, CRC, CRC_DELIM,
-    ACK, ACK_DELIM, EOFRAME, ERR_FLAG, ERR_DELIM, OVERLOAD_FLAG, OVERLOAD_DELIM
+    ACK, ACK_DELIM, EOFRAME, ERR_FLAG, ERR_DELIM, OVERLOAD_FLAG, OVERLOAD_DELIM, INTER
 };
+
+extern int inter_count; // contador dos bits do interframe
 
 // Struct que representa um frame can
 typedef struct CanFrame

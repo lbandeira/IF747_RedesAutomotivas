@@ -4,12 +4,14 @@
 #include "utils.h"
 #include "bit_error_control.h"
 #include "crc_error_control.h"
+#include "bit_timing.h"
 
-extern bool Tx;
-extern bool writing_point;
-extern bool lost;
-extern bool flag_stuff;
+extern bool Tx; // bit a ser escrito no bus
+extern bool lost; // indica que perdeu a arbitracao
+extern bool flag_stuff; // indica que o bit escrito no bus eh bit stuff
+extern bool is_writing; // indica que o bus esta ocupado com alguem escrevendo
 
-void bit_stuff_insert(bool unstuffed_frame, bool last_bit);
+void bit_stuff_insert(); // funcao que escreve cada bit do frame no bus
+void send_frame(bool *unstuffed_frame, int size); // funcao que obtem o frame a ser escrito no bus
 
 #endif

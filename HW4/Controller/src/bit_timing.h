@@ -1,4 +1,9 @@
+#ifndef BIT_TIMING_H
+#define BIT_TIMING_H
+
 #include <Arduino.h>
+#include "TimerOne.h"
+#include "frame_control.h"
 
 //Variaveis do calculo do Timequanta
 #define TQ_SYNC 1
@@ -7,7 +12,7 @@
 #define TQ_SEG_2 7
 #define TQ_QUANT_TOTAL 16
 #define SJW 10
-#define BIT_RATE 5 // Bitrate de 500bps, apenas para teste por enquanto
+#define BIT_RATE 1000000 // interrupcao a cada 1 segundo (tq a cada segundo)
 
 //Variaveis da maquina de estados
 #define SYNC 0
@@ -20,31 +25,12 @@
 #define RESYNC_PIN 2
 #define HARD_SYNC_PIN 3
 
-//Variaveis do Bit timing logic
 extern bool writing_point;
 extern bool sample_point;
 
-//Variaveis da CAN
-bool bus_idle;
-
-void setupInterrupt() ;
-
-int getTqFrequency(); 
-
-void btl_setup();
-
-void btl_state_machine() ;
-
-void pins_setup() ;
-
-void resync_isr() ;
-
-void hard_sync_isr() ;
-
-void plot_setup() ;
-
-void update_plotter_values();
-
+void bit_timing_setup();
 void write_plot();
+void bit_timing_sm();
+void detect_falling_edge(bool rx);
 
-
+#endif

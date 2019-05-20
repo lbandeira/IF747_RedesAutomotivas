@@ -1,5 +1,3 @@
-#include <Arduino.h>
-#include <TimeOne.h>
 #include "bit_timing.h"
 
 int state_new;
@@ -22,6 +20,7 @@ bool resync;
 bool resync_enable;
 volatile bool new_tq;
 bool hard_sync;
+bool is_falling_edge;
 
 //Variaveis da CAN
 bool bus_idle;
@@ -30,40 +29,6 @@ bool bus_idle;
 int seg_plotter_state;
 bool tq_plotter_state;
 
-/*
-// esse metodo eh responsavel por fazer o setup inicial dos regs que iram tratar na interrupcao
-void setupInterrupt() {
-   // desativando as interrupcoes
-  noInterrupts();
-
-  // resetando os registradores responsaveis pelo comportamento do timer 1, cada um deles tem 8 bits
-  TCCR1A = 0;
-  TCCR1B = 0;
-  
-  // resetando o timer counter do timer 1
-  // esse carinha eh que eh incrementado de acordo com a frequencia
-  TCNT1 = 0;
-
-  // esse registrador aqui vai ficar o valor com o qual queremos comparar para que role a interrupcao
-  // nos nao estamos usando o prescaler, portanto o contador devera incrementar a cada tick do clock do arduino
-  // o que significa que ele incrementara 16 millhoes de vezes em 1 segundo, ou seja, dentro de 1 segundo, ocorrem 8000 tqs
-  // como o tq dura 0.000125s, sua frequencia eh de 8000Hz
-//  OCR1A = (F_CPU / getTqFrequency()) - 1;      // 16MHz/1/8000Hz --- 8000Hz = 1/((1/500bps)/16)
-   OCR1A = 65535;      // 16MHz/1/8000Hz --- 8000Hz = 1/((1/500bps)/16)
-
-  // setando o 4 bit menos significativo para 1, isso significa que queremos que haja uma interrupcao toda vez que o contador
-  // atingir o valor que estah no OCR1A
-  TCCR1B |= (1 << WGM12);
-  // TCCR1A |= (1<<WGM01);
-  // setando o bit menos significativo para 1, isso significa que nao vamos usar nenhum prescaler
-  TCCR1B |= ((1 << CS11) | (1 << CS10));
-  // habilitando a interrupcao por comparacao na mascara de interrupcoes
-  TIMSK1 |= (1 << OCIE1A);
-
-  // reabilitando interrupcoes
-  interrupts();
-}*/
-
 int getTqFrequency() {
   double bitTime = 1.0 / BIT_RATE;
   double tq = bitTime / (TQ_SYNC + TQ_PROP + TQ_SEG_1 + TQ_SEG_2);
@@ -71,12 +36,46 @@ int getTqFrequency() {
   return 1.0 / tq;
 }
 
-ISR(TIMER1_COMPA_vect) {
+void time_quanta_isr() {
   new_tq = true;
   tq_plotter_state = !tq_plotter_state;
 }
 
-void btl_setup(){
+void resync_isr() {
+  resync = true;
+}
+
+void hard_sync_isr() {
+  hard_sync = true;
+}
+
+void pins_setup() {
+  pinMode(RESYNC_PIN, INPUT_PULLUP);
+  pinMode(HARD_SYNC_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(RESYNC_PIN), resync_isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(HARD_SYNC_PIN), hard_sync_isr, CHANGE);
+}
+
+void plot_setup() {
+  seg_plotter_state = -1;
+  tq_plotter_state = false;
+}
+
+void write_plot() {
+  Serial.print(seg_plotter_state + 2);
+  Serial.print(" ");
+  Serial.print(tq_plotter_state);
+  Serial.print(" ");
+  Serial.print(hard_sync - 1);
+  Serial.print(" ");
+  Serial.print(resync - 3);
+  Serial.print(" ");
+  Serial.print(writing_point - 5);
+  Serial.print(" ");
+  Serial.println(sample_point - 7);
+}
+
+void bit_timing_setup() {
   state_new = SYNC;
   tq_tot = 0;
   tq_seg1 = 0;
@@ -88,9 +87,60 @@ void btl_setup(){
   resync = false;
   resync_enable = false;
   hard_sync = false;
+  is_falling_edge = false;
+
+  Timer1.initialize(BIT_RATE);
+  plot_setup();
+  pins_setup();
+  Timer1.attachInterrupt(time_quanta_isr);
 }
 
-void btl_state_machine() {
+void update_plotter_values() {
+  switch (state_old) {
+    case SYNC:
+      seg_plotter_state = 1;
+      break;
+
+    case SEG_1:
+      seg_plotter_state = 3;
+      break;
+
+    case WINDOW_1:
+      seg_plotter_state = 5;
+      break;
+
+    case SEG_2:
+      seg_plotter_state = 7;
+      break;
+
+    case WINDOW_2:
+      seg_plotter_state = 9;
+      break;
+
+    default:
+      break;
+  }
+}
+
+// Detecta se houve um falling edge no bus
+void detect_falling_edge(bool rx) {
+  is_falling_edge = !rx;
+}
+
+void bit_timing_sm() {
+  // Toda vez que ocorrer um falling edge no bus
+  if (is_falling_edge) {
+    if (is_idle) {
+      hard_sync = true;
+      sample_point = false;
+      // Reseta o controle de tqs
+      // Timer1.restart();
+    } else {
+      resync = true;
+    }
+    is_falling_edge = false;
+  }
+
   if (new_tq) {
     new_tq = false;
     if (hard_sync) {
@@ -136,6 +186,7 @@ void btl_state_machine() {
       
       //SYNC: TQ_SYNC = 1
       case SYNC:    
+        Serial.println("SYNC STATE");//tu descobriu mais alguma coisa?
         writing_point = true;
         resync_enable = true;
         tq_tot = 0;
@@ -149,6 +200,7 @@ void btl_state_machine() {
 
       //SEG_1: TQ_SEG1 = 8 (PROP_SEG + SEG1)
       case SEG_1:
+        Serial.println("SEG_1 STATE");
         tq_tot++;
         writing_point = false;
         if(state_old == SYNC){
@@ -223,80 +275,4 @@ void btl_state_machine() {
     }
     update_plotter_values();
   } 
-}
-
-void pins_setup() {
-  pinMode(RESYNC_PIN, INPUT_PULLUP);
-  pinMode(HARD_SYNC_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(RESYNC_PIN), resync_isr, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(HARD_SYNC_PIN), hard_sync_isr, CHANGE);
-}
-
-void resync_isr() {
-  resync = true;
-}
-
-void hard_sync_isr() {
-  hard_sync = true;
-}
-
-void plot_setup() {
-  seg_plotter_state = -1;
-  tq_plotter_state = false;
-}
-
-void update_plotter_values() {
-  switch (state_old) {
-    case SYNC:
-      seg_plotter_state = 1;
-      break;
-
-    case SEG_1:
-      seg_plotter_state = 3;
-      break;
-
-    case WINDOW_1:
-      seg_plotter_state = 5;
-      break;
-
-    case SEG_2:
-      seg_plotter_state = 7;
-      break;
-
-    case WINDOW_2:
-      seg_plotter_state = 9;
-      break;
-
-    default:
-      break;
-  }
-}
-
-void write_plot() {
-  Serial.print(seg_plotter_state + 2);
-  Serial.print(" ");
-  Serial.print(tq_plotter_state);
-  Serial.print(" ");
-  Serial.print(hard_sync - 1);
-  Serial.print(" ");
-  Serial.print(resync - 3);
-  Serial.print(" ");
-  Serial.print(writing_point - 5);
-  Serial.print(" ");
-  Serial.println(sample_point - 7);
-}
-
-void setup() {
-  Serial.begin(9600);
-  btl_setup();
-  Timer1.initialize(BIT_RATE);
-  //setupInterrupt();
-  plot_setup();
-  pins_setup();
-  Timer1.attachInterrupt(ISR);
-}
-
-void loop() {
-  write_plot();
-  btl_state_machine();
 }

@@ -3,6 +3,7 @@
 
 #include "utils.h"
 #include "bit_stuff_control.h"
+#include "bit_stuff_insert.h"
 
 extern bool arbitration_flag;
 extern bool bit_error_flag;

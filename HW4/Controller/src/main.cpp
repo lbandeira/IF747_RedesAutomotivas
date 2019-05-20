@@ -7,59 +7,24 @@
 #include "form_error_control.h"
 #include "crc_error_control.h"
 #include "bit_stuff_insert.h"
+#include "bit_timing.h"
 
 bool rx[256] = { 0 };
 bool bus[256] = { 0 };
+bool unstuffed_frame[128] = { 0 };
+int unstuffed_frame_size;
 int bus_idx = 0;
 int current_state;
 int last_state;
 bool last_bit_tx = true;
 bool Rx;
-
-const char test_frames[][256] PROGMEM = {
-  "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001000010100011011111111",
-  "011001110010000011111001010101010101010101010101010101010101010101010101010101011001100111011011111111",
-  "011001110010000011101010101010101010101010101010101010101010101010100001001001011101011111111",
-  "0110011100100000110110101010101010101010101010101010101010101100111001001101011111111",
-  "01100111001000001100101010101010101010101010101010101110111010100101011111111",
-  "0110011100100000101110101010101010101010101001001011100000111011111111",
-  "0110011100100000101010101010101010100110110111100111011111111",
-  "01100111001000001001101010101100111000010101011111111",
-  "011001110010000010000110010110101011011111111",
-  "0110011100101000001000001000010100011011111111",
-  "011001110010100000110000100100010011011111111",
-  "0100010010011111000001000001111100100001000101010101010101010101010101010101010101010101010101010101010101011110111110101011011111111",
-  "010001001001111100000100000111110010100100001010011111001101011111111"
-};
+bool last_writing_state = false;
+bool first_falling_edge = true;
 
 const char bit_stuff_error_frame[] PROGMEM = "011001110010000100010101010101010101010101010101010101010101010101010101010101010100000000010100011111111111";
 const char ack_error_frame[] PROGMEM = "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001000010100011111111111";
 const char form_error_frame[] PROGMEM = "0100010010011111000001000001111100100001000101010101010101010101010101010101010101010101010101010101010101011110111110101011011111110";
 const char crc_error_frame[] PROGMEM = "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001100010100011011111111";
-
-void test_frame_control() {
-  for (int f = 0; f < 13; f++) {
-    int frame_size = strlen(test_frames[f]);
-    current_state = IDLE;
-    last_state = current_state;
-    string_to_bit_array((char *)test_frames[f], rx);
-
-    for (int i = 0; i < frame_size; i++) {
-      check_bit_stuff(rx[i]);
-      frame_decoder(rx[i]);
-      ack_error_control(rx[i]);
-      // bit_error_control(rx[i]);
-      form_error_control(rx[i]);
-      crc_error_control(rx[i]);
-    }
-
-    // Printando o frame lido pelo bus
-    print_frame(frame);
-
-    // Printando as flags de erro
-    print_error_flags(ack_error_flag, bit_stuff_error, bit_error_flag, form_error_flag, crc_error_flag);
-  }
-}
 
 void reset_all() {
   current_state = IDLE;
@@ -112,6 +77,7 @@ int create_frame(bool *buffer, uint32_t id, uint64_t payload, bool is_extended, 
   int payload_size = dlc * 8;
   bool frame_id[frame_id_size];
   bool payload_array[payload_size];
+  int frame_size;
 
   // Convertendo id para array de bits
   convert_to_bit_array(id, frame_id, frame_id_size);
@@ -120,9 +86,17 @@ int create_frame(bool *buffer, uint32_t id, uint64_t payload, bool is_extended, 
   convert_to_bit_array(payload, payload_array, payload_size);
 
   // Construindo o frame e transformando em um array de bits retornando o numero de bits
-  return build_frame(frame_id, payload_array, buffer, is_extended, is_data, dlc);
+  frame_size = build_frame(frame_id, payload_array, buffer, is_extended, is_data, dlc);
+
+  if (is_writing)
+    return 0;
+
+  send_frame(unstuffed_frame, frame_size);
+
+  return frame_size;
 }
 
+// Caso retorne 0 indica que o bus esta ocupado
 int prepare_transmission(bool *unstuffed_frame) {
   // Editar valores de acordo com o frame que vai ser transmitido
   uint32_t id = 0x0672;
@@ -135,11 +109,6 @@ int prepare_transmission(bool *unstuffed_frame) {
   return create_frame(unstuffed_frame, id, payload, is_extended, is_data, dlc);
 }
 
-void transmit_frame(bool current_bit) {
-  bit_stuff_insert(current_bit, last_bit_tx);
-  last_bit_tx = Tx;
-}
-
 void receive_frame() {
   check_bit_stuff(Rx);
   frame_decoder(Rx);
@@ -149,75 +118,101 @@ void receive_frame() {
   crc_error_control(Rx);
 }
 
-void test_rx_tx() {
-  // Array de bits que representa o frame sem bit stuff
-  bool unstuffed_frame[128];
-  // Tamanho do frame sem bit stuff
-  int unstuffed_frame_size;
+// void test_rx_tx() {
+//   // Array de bits que representa o frame sem bit stuff
+//   bool unstuffed_frame[128];
+//   // Tamanho do frame sem bit stuff
+//   int unstuffed_frame_size;
 
-  // Montando o frame sem bit stuff
-  unstuffed_frame_size = prepare_transmission(unstuffed_frame);
+//   // Montando o frame sem bit stuff
+//   unstuffed_frame_size = prepare_transmission(unstuffed_frame);
 
-  // Loop que representa o envio de um bit no bus, assim como a leitura do mesmo
-  for (int i = 0; i < unstuffed_frame_size; ) {
-    // Simulando trasmissao no bus
-    if (flag_stuff)
-      transmit_frame(unstuffed_frame[i]);
-    else
-      transmit_frame(unstuffed_frame[i++]);
-    bus[bus_idx++] = Tx;
+//   // Loop que representa o envio de um bit no bus, assim como a leitura do mesmo
+//   for (int i = 0; i < unstuffed_frame_size; ) {
+//     // Simulando trasmissao no bus
+//     if (flag_stuff)
+//       transmit_frame(unstuffed_frame[i]);
+//     else
+//       transmit_frame(unstuffed_frame[i++]);
+//     bus[bus_idx++] = Tx;
 
-    // Simulando recepcao no bus
-    Rx = bus[--bus_idx];
-    receive_frame();
-  }
+//     // Simulando recepcao no bus
+//     Rx = bus[--bus_idx];
+//     receive_frame();
+//   }
 
-  // Printando o frame recebido e construido
-  print_frame(frame);
+//   // Printando o frame recebido e construido
+//   print_frame(frame);
 
-  // Printando flags de erro
-  print_error_flags(ack_error_flag, bit_stuff_error, bit_error_flag, form_error_flag, crc_error_flag);
+//   // Printando flags de erro
+//   print_error_flags(ack_error_flag, bit_stuff_error, bit_error_flag, form_error_flag, crc_error_flag);
 
-  // Printando o frame em binario
-  print_bit_array(frame.raw, frame_idx);
-}
+//   // Printando o frame em binario
+//   print_bit_array(frame.raw, frame_idx);
+// }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
 
+  // Reseta todos os estados e variaveis
   reset_all();
 
-  // test_frame_control();
+  // Faz o setup dos estados e variaveis do modulo de bit timing
+  bit_timing_setup();
 
-  #if defined(__AVR__)
-  // char buffer[256];
-  // Testando frame com ack error
-  // strcpy_P(buffer, ack_error_frame);
-  // test_frame(buffer);
-  // Testando frame com form error
-  // strcpy_P(buffer, form_error_frame);
-  // test_frame(buffer);
-  // Testando frame com crc error
-  // strcpy_P(buffer, crc_error_frame);
-  // test_frame(buffer);
+  // Prepara o frame que vai ser utilizado no teste 
+  unstuffed_frame_size = prepare_transmission(unstuffed_frame); 
 
-  test_rx_tx();
-  #elif defined(ESP32)
-  // Testando erro de bit stuffing
-  // test_frame((char *)bit_stuff_error_frame);
-  // Testando frame com ack error
-  // test_frame((char *)ack_error_frame);
-  // Testando frame com form error
-  // test_frame((char *)form_error_frame);
-  // Testando frame com crc error
-  // test_frame((char *)crc_error_frame);
-
-  // Testando encoder/decoder simulando o bus
-  test_rx_tx();
-  #endif
-
+  // Setando o Rx = false para forçar um falling edge
+  Rx = false;
 }
 
+// Loop principal onde os modulos de encoder e decoder irao executar
+// Cada TQ esta programado para durar 1 segundo
 void loop() {
+  // Desativando interrupcoes
+  cli();
+
+  // Posteriormente isso deve ser implementado como uma interrupcao associada ao pino de rx
+  detect_falling_edge(Rx);
+
+  // Executando a maquina de estados do bit timing
+  bit_timing_sm();
+
+  // Caso seja o momento de escrever no bus
+  if (writing_point) {
+    // Pega um bit do frame e escreve no bus
+    bit_stuff_insert();
+    
+    // Debugando o frame que esta sendo escrito no bus
+    if (!last_writing_state && is_writing) {
+      Serial.print("O seguinte frame foi escrito no bus: ");
+      Serial.print(Tx);
+    } else if (is_writing) {
+      Serial.print(Tx);  
+    } else if (last_writing_state && !is_writing) {
+      Serial.print(Tx);
+      Serial.println();
+    }
+
+    writing_point = false;
+    
+    last_writing_state = is_writing;
+  }
   
+
+  // Caso seja o momento de ler do bus
+  if (sample_point) {
+    check_bit_stuff(Rx);
+    frame_decoder(Rx);
+    ack_error_control(Rx);
+    bit_error_control(Rx, Tx);
+    form_error_control(Rx);
+    crc_error_control(Rx);
+
+    sample_point = false;
+  }
+
+  // Reativando interrupcoes
+  sei();
 }
