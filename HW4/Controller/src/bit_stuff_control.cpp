@@ -21,7 +21,7 @@ void check_bit_stuff(bool rx) {
             bit_stuff_flag = false;
         // caso haja mais de 5 bits consecutivos iguais, um erro de bit stuffing eh detectado
         if (bits_count == 6) {
-            Serial.println("BIT STUFF ERROR");
+            // Serial.println("BIT STUFF ERROR");
             bit_stuff_error = true;
             bits_count = 1;
         } else if (bits_count == 5) {

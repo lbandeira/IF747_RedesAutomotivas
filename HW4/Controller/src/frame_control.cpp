@@ -35,12 +35,7 @@ void frame_decoder(bool rx) {
     switch(current_state) {
         // Estado de IDLE
         case IDLE:
-            Serial.println("IDLE");
             if (rx == 0) {
-                //ele entra aqui alguma vez??
-                // E ele tinha que entrar no SOF. Nao ta entrando aqui
-                // pois eh
-                Serial.println("HEY!");
                 current_state = ID_A;
                 state_idx = 0;
                 frame_idx = 0;
@@ -52,7 +47,6 @@ void frame_decoder(bool rx) {
 
         // Identificador do frame
         case ID_A:
-            Serial.println("ID_A");
             frame.id_a[state_idx++] = rx;
             // recebeu os 11 bits do id
             if (state_idx == 11) {

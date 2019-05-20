@@ -25,12 +25,12 @@ void crc_error_control(bool rx) {
         if (crc_idx == 15) {
             short calculated_crc = calculate_crc(frame.raw, frame_idx - crc_idx);
             short frame_crc = (short)convert_bit_array_to_int(frame.crc, 15);
-            Serial.println("========= CRC ==========");
-            Serial.print("Calculated CRC: ");
-            Serial.println(calculated_crc, HEX);
-            Serial.print("Frame CRC: ");
-            Serial.println(frame_crc, HEX);
-            Serial.println("========================");
+            // Serial.println("========= CRC ==========");
+            // Serial.print("Calculated CRC: ");
+            // Serial.println(calculated_crc, HEX);
+            // Serial.print("Frame CRC: ");
+            // Serial.println(frame_crc, HEX);
+            // Serial.println("========================");
             if (calculated_crc != frame_crc) {
                 crc_error_flag = true;
                 Serial.print("CRC ERROR: ");

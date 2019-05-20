@@ -114,8 +114,8 @@ void print_error_flags(bool ack_error_flag, bool bit_stuff_error, bool bit_error
     Serial.println(bit_error_flag);
     Serial.print("STUFF ERROR: ");
     Serial.println(bit_stuff_error);
-    // Serial.print("CRC ERROR: ");
-    // Serial.println(crc_error_flag);
+    Serial.print("CRC ERROR: ");
+    Serial.println(crc_error_flag);
     Serial.print("FORM ERROR: ");
     Serial.println(form_error_flag);
     Serial.print("ACK ERROR: ");

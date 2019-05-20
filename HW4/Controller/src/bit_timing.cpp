@@ -10,7 +10,6 @@ int window_size;
 
 volatile bool btlState = false; // boolean soh pra avisar que houve a interrupcao
 volatile int tot = 0;
-int time_t;
 int time_new;
 
 //Variaveis do Bit timing logic
@@ -29,6 +28,12 @@ bool bus_idle;
 int seg_plotter_state;
 bool tq_plotter_state;
 
+// variaveis do timer (ESP32)
+#ifdef ESP32
+hw_timer_t *timer = NULL;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+#endif
+
 int getTqFrequency() {
   double bitTime = 1.0 / BIT_RATE;
   double tq = bitTime / (TQ_SYNC + TQ_PROP + TQ_SEG_1 + TQ_SEG_2);
@@ -36,10 +41,24 @@ int getTqFrequency() {
   return 1.0 / tq;
 }
 
+#if defined(__AVR__)
+// Tratamento da interrupcao Arduino
 void time_quanta_isr() {
   new_tq = true;
   tq_plotter_state = !tq_plotter_state;
 }
+
+#elif defined(ESP32)
+// Tratamento da interrupcao ESP32
+void IRAM_ATTR time_quanta_isr() {
+  portENTER_CRITICAL_ISR(&timerMux);
+  // Serial.println("Entrei na interrupcao");
+  new_tq = true;
+  tq_plotter_state = !tq_plotter_state;
+  portEXIT_CRITICAL_ISR(&timerMux);
+}
+
+#endif
 
 void resync_isr() {
   resync = true;
@@ -89,10 +108,21 @@ void bit_timing_setup() {
   hard_sync = false;
   is_falling_edge = false;
 
+  #if defined(__AVR__)
+  // Setup do timer para o Arduino
   Timer1.initialize(BIT_RATE);
+  Timer1.attachInterrupt(time_quanta_isr);
+
+  #elif defined(ESP32)
+  // Setup do timer para a ESP32
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer, &time_quanta_isr, true);
+  timerAlarmWrite(timer, BIT_RATE, true);
+  timerAlarmEnable(timer);
+  #endif
+
   plot_setup();
   pins_setup();
-  Timer1.attachInterrupt(time_quanta_isr);
 }
 
 void update_plotter_values() {
@@ -123,8 +153,15 @@ void update_plotter_values() {
 }
 
 // Detecta se houve um falling edge no bus
-void detect_falling_edge(bool rx) {
-  is_falling_edge = !rx;
+void detect_falling_edge(bool old_rx, bool rx) {
+  if (old_rx && !rx) {
+    is_falling_edge = true;
+  }
+}
+
+// Detecta se houve um falling edge no bus
+void detect_falling_edge() {
+  is_falling_edge = true;
 }
 
 void bit_timing_sm() {
@@ -134,7 +171,10 @@ void bit_timing_sm() {
       hard_sync = true;
       sample_point = false;
       // Reseta o controle de tqs
-      // Timer1.restart();
+      #if defined(__AVR__)
+      Timer1.restart();
+      #elif defined(ESP32)
+      #endif
     } else {
       resync = true;
     }
@@ -142,7 +182,14 @@ void bit_timing_sm() {
   }
 
   if (new_tq) {
+    #ifdef ESP32
+    portENTER_CRITICAL(&timerMux);
+    #endif
     new_tq = false;
+    #ifdef ESP32
+    portEXIT_CRITICAL(&timerMux);
+    #endif
+
     if (hard_sync) {
 
       state_new = SYNC;
@@ -186,7 +233,6 @@ void bit_timing_sm() {
       
       //SYNC: TQ_SYNC = 1
       case SYNC:    
-        Serial.println("SYNC STATE");//tu descobriu mais alguma coisa?
         writing_point = true;
         resync_enable = true;
         tq_tot = 0;
@@ -200,7 +246,6 @@ void bit_timing_sm() {
 
       //SEG_1: TQ_SEG1 = 8 (PROP_SEG + SEG1)
       case SEG_1:
-        Serial.println("SEG_1 STATE");
         tq_tot++;
         writing_point = false;
         if(state_old == SYNC){

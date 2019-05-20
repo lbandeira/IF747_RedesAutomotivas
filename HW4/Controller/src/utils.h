@@ -25,11 +25,30 @@ typedef unsigned long long ull;
 #define IDX_PAYLOAD_A 19
 #define IDX_PAYLOAD_B 39
 
+
+#if defined(__AVR__)
+// Pinos para o TX e RX no Arduino
+#define RX_PIN 2
+#define TX_PIN 3
+
+#elif defined(ESP32)
+// Pinos para o TX e RX na ESP32
+#define RX_PIN 18
+#define TX_PIN 26
+
+#endif
+
 // Enumeration que representa o estado atual do frame
 enum FrameState {
     IDLE, ID_A, RTR_A_SRR, IDE, R0, ID_B,
     RTR_B, R1_R0, DLC, PAYLOAD, CRC, CRC_DELIM,
     ACK, ACK_DELIM, EOFRAME, ERR_FLAG, ERR_DELIM, OVERLOAD_FLAG, OVERLOAD_DELIM, INTER
+};
+
+static const char *state_map[] = {
+    "IDLE", "ID_A", "RTR_A_SRR", "IDE", "R0", "ID_B",
+    "RTR_B", "R1_R0", "DLC", "PAYLOAD", "CRC", "CRC_DELIM",
+    "ACK", "ACK_DELIM", "EOFRAME", "ERR_FLAG", "ERR_DELIM", "OVERLOAD_FLAG", "OVERLOAD_DELIM", "INTER"
 };
 
 extern int inter_count; // contador dos bits do interframe

@@ -24,6 +24,7 @@ void bit_stuff_insert() {
         err_count++;
         wait_next_frame = false;
         idx = 0;
+        Serial.println("ERROR FLAG");
     }
     // Estado de error delimiter ou overload delimite
     else if (current_state == ERR_DELIM || current_state == OVERLOAD_DELIM) {
@@ -49,13 +50,6 @@ void bit_stuff_insert() {
         wait_next_frame = true;
     }
     else if (flag_stuff){ 
-        // Serial.println("Opa, inseri um bit stuff");
-        // Certo, agr ele tah inserindo o it stuff, mas ta colocando onde nao deve tbm
-        // mas isso eh pq o current state nao ta sendo atualizado
-        // debugar isso agr
-        // Eu sou muito burrooooooooo --'
-        // acontece, eu não olhei nada na main o if do sample point la na main ta sem nada dentro kkkkkkkk
-
         Tx = !last_bit;
         bit_count = 1;
         flag_stuff = false;

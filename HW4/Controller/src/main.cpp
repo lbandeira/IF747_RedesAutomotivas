@@ -20,6 +20,7 @@ bool last_bit_tx = true;
 bool Rx;
 bool last_writing_state = false;
 bool first_falling_edge = true;
+bool old_rx = true;
 
 const char bit_stuff_error_frame[] PROGMEM = "011001110010000100010101010101010101010101010101010101010101010101010101010101010100000000010100011111111111";
 const char ack_error_frame[] PROGMEM = "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001000010100011111111111";
@@ -99,9 +100,9 @@ int create_frame(bool *buffer, uint32_t id, uint64_t payload, bool is_extended, 
 // Caso retorne 0 indica que o bus esta ocupado
 int prepare_transmission(bool *unstuffed_frame) {
   // Editar valores de acordo com o frame que vai ser transmitido
-  uint32_t id = 0x0672;
+  uint32_t id = 0x1127007A;
   uint64_t payload = 0xAAAAAAAAAAAAAAAA;
-  bool is_extended = false;
+  bool is_extended = true;
   bool is_data = true;
   int dlc = 8;
 
@@ -154,17 +155,29 @@ void receive_frame() {
 void setup() {
   Serial.begin(9600);
 
+  // Setando os pinos que serao o RX e TX
+  pinMode(RX_PIN, INPUT);
+  pinMode(TX_PIN, OUTPUT);
+
   // Reseta todos os estados e variaveis
   reset_all();
 
   // Faz o setup dos estados e variaveis do modulo de bit timing
   bit_timing_setup();
 
+  // Atribuindo uma interrupcao ao pino do RX
+  // Toda vez que houver uma mudanca do nivel logico 1 para o nivel logico 0
+  // havera uma interrupcao
+  attachInterrupt(digitalPinToInterrupt(RX_PIN), detect_falling_edge, FALLING);
+
+  // Essa parte so sera executada pela ECU que envia o pacote, no caso a ESP32
+  #ifdef ESP32
   // Prepara o frame que vai ser utilizado no teste 
   unstuffed_frame_size = prepare_transmission(unstuffed_frame); 
 
   // Setando o Rx = false para forçar um falling edge
   Rx = false;
+  #endif
 }
 
 // Loop principal onde os modulos de encoder e decoder irao executar
@@ -174,7 +187,7 @@ void loop() {
   cli();
 
   // Posteriormente isso deve ser implementado como uma interrupcao associada ao pino de rx
-  detect_falling_edge(Rx);
+  detect_falling_edge(old_rx, Rx);
 
   // Executando a maquina de estados do bit timing
   bit_timing_sm();
@@ -184,25 +197,40 @@ void loop() {
     // Pega um bit do frame e escreve no bus
     bit_stuff_insert();
     
-    // Debugando o frame que esta sendo escrito no bus
-    if (!last_writing_state && is_writing) {
-      Serial.print("O seguinte frame foi escrito no bus: ");
-      Serial.print(Tx);
-    } else if (is_writing) {
-      Serial.print(Tx);  
-    } else if (last_writing_state && !is_writing) {
-      Serial.print(Tx);
-      Serial.println();
-    }
+    // Escrevendo no barramento
+    digitalWrite(TX_PIN, Tx);
 
+    // Debugando o frame que esta sendo escrito no bus
+    // if (!last_writing_state && is_writing) {
+    //   Serial.print("O seguinte frame foi escrito no bus: ");
+    //   Serial.print(Tx);
+    //   // Serial.print("Enviou: ");
+    //   // Serial.println(Tx);
+    // } else if (is_writing) {
+    //   Serial.print(Tx);  
+    //   // Serial.print("Enviou: ");
+    //   // Serial.println(Tx);
+    // } else if (last_writing_state && !is_writing) {
+    //   Serial.print(Tx);
+    //   Serial.println();
+    //   // Serial.print("Enviou: ");
+    //   // Serial.println(Tx);
+    // }
+    Serial.println("===============");
+    Serial.print("Escreveu: ");
+    Serial.println(Tx);
     writing_point = false;
     
     last_writing_state = is_writing;
   }
   
+  // Rx = Tx;
 
   // Caso seja o momento de ler do bus
   if (sample_point) {
+    // Obtendo um bit do barramento
+    Rx = digitalRead(RX_PIN);
+
     check_bit_stuff(Rx);
     frame_decoder(Rx);
     ack_error_control(Rx);
@@ -210,8 +238,22 @@ void loop() {
     form_error_control(Rx);
     crc_error_control(Rx);
 
+    Serial.print("Recebeu: ");
+    Serial.println(Rx);
+    Serial.println("===============");
+
+    // Serial.print("Recebi o bit: ");
+    // Serial.println(Rx);
+    // print_error_flags(ack_error_flag, bit_stuff_error, bit_error_flag, form_error_flag, crc_error_flag);
+
+    // Printando flag de erro de bit
+    // Serial.print("Bit Error Flag: ");
+    // Serial.println(bit_error_flag);
+
     sample_point = false;
   }
+
+  old_rx = Rx;
 
   // Reativando interrupcoes
   sei();
