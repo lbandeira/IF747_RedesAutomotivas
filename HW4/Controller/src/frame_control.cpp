@@ -21,7 +21,8 @@ void frame_decoder(bool rx) {
         return;
     }
 
-    if(form_error_flag || ack_error_flag || crc_error_flag || arbitration_flag || bit_error_flag){
+    if(form_error_flag || ack_error_flag || crc_error_flag || bit_stuff_flag || bit_error_flag){
+        print_error_flags(ack_error_flag, bit_stuff_flag, bit_error_flag, form_error_flag, crc_error_flag);
         current_state = ERR_FLAG;
     }
 
@@ -33,20 +34,11 @@ void frame_decoder(bool rx) {
     }
 
     switch(current_state) {
-        // Estado de IDLE
-        case IDLE:
-            if (rx == 0) {
-                current_state = ID_A;
-                state_idx = 0;
-                frame_idx = 0;
-                is_idle = false; 
-            } else {
-                is_idle = true;
-            }
-            break; // ta rolando meio que um deadlock, eu acho, ei
-
         // Identificador do frame
         case ID_A:
+            // Serial.print(state_map[current_state]);
+            // Serial.print(" BIT: ");
+            // Serial.println(state_idx);
             frame.id_a[state_idx++] = rx;
             // recebeu os 11 bits do id
             if (state_idx == 11) {
@@ -56,11 +48,13 @@ void frame_decoder(bool rx) {
             break;
 
         case RTR_A_SRR:
+            // Serial.println(state_map[current_state]);
             frame.rtr_a_srr = rx;
             current_state = IDE;
             break;
 
         case IDE:
+            // Serial.println(state_map[current_state]);
             frame.ide = rx;
             // se o bit for dominante (0) entao o frame eh standard
             // caso contrario, o frame eh extended
@@ -72,11 +66,15 @@ void frame_decoder(bool rx) {
             break;
             
         case R0:
+            // Serial.println(state_map[current_state]);
             frame.r0 = rx;
             current_state = DLC;
             break;
         
         case ID_B:
+            // Serial.print(state_map[current_state]);
+            // Serial.print(" BIT: ");
+            // Serial.println(state_idx);
             frame.id_b[state_idx++] = rx;
             // recebeu os 18 bits do id_b
             if (state_idx == 18) {
@@ -86,11 +84,15 @@ void frame_decoder(bool rx) {
             break;
 
         case RTR_B:
+            // Serial.println(state_map[current_state]);
             frame.rtr_b = rx;
             current_state = R1_R0;
             break;
 
         case R1_R0:
+            // Serial.print(state_map[current_state]);
+            // Serial.print(" BIT: ");
+            // Serial.println(state_idx);
             frame.r1_r0[state_idx++] = rx;
             if (state_idx == 2) {
                 state_idx = 0;
@@ -99,6 +101,9 @@ void frame_decoder(bool rx) {
             break;
 
         case DLC:
+            // Serial.print(state_map[current_state]);
+            // Serial.print(" BIT: ");
+            // Serial.println(state_idx);
             frame.dlc[state_idx++] = rx;
             if (state_idx == 4) {
                 state_idx = 0;
@@ -117,6 +122,9 @@ void frame_decoder(bool rx) {
             break;
 
         case PAYLOAD:
+            // Serial.print(state_map[current_state]);
+            // Serial.print(" BIT: ");
+            // Serial.println(state_idx);
             frame.payload[state_idx++] = rx;
             // recebeu todos os bits do payload
             if (state_idx == payload_size) {
@@ -126,6 +134,9 @@ void frame_decoder(bool rx) {
             break;
 
         case CRC:
+            // Serial.print(state_map[current_state]);
+            // Serial.print(" BIT: ");
+            // Serial.println(state_idx);
             frame.crc[state_idx++] = rx;
             // recebeu todos os bits do CRC
             if (state_idx == 15) {
@@ -135,25 +146,33 @@ void frame_decoder(bool rx) {
             break;
 
         case CRC_DELIM:
+            // Serial.println(state_map[current_state]);
             frame.crc_delimiter = rx;
             current_state = ACK;
             break;
 
         case ACK:
+            // Serial.println(state_map[current_state]);
             frame.ack = rx;
             current_state = ACK_DELIM;
             break;
 
         case ACK_DELIM:
+            // Serial.println(state_map[current_state]);
             frame.ack_delimiter = rx;
             current_state = EOFRAME;
             break;
 
         case EOFRAME:
+            // Serial.print(state_map[current_state]);
+            // Serial.print(" BIT: ");
+            // Serial.println(state_idx);
             frame.eof[state_idx++] = rx;
             // recebeu os 7 bits do EOF
             if (state_idx == 7) {
                 state_idx = 0;
+                inter_count = 0;
+                current_state = INTER;
             }
             break;
         
@@ -176,6 +195,7 @@ void frame_decoder(bool rx) {
             else{
                 err_flag_count = 0;
                 err_delim_count = 0;
+                inter_count = 0;
                 current_state = INTER;
             }
             break;
@@ -202,6 +222,7 @@ void frame_decoder(bool rx) {
             else{
                 err_flag_count = 0;
                 err_delim_count = 0;
+                inter_count = 0;
                 current_state = INTER;
             }
             break;
@@ -211,10 +232,25 @@ void frame_decoder(bool rx) {
             if((rx == true) && (inter_count < 2)){
                 inter_count++;
                 current_state = INTER;
+                break;
             }
             else{
-                inter_count = 0;
+                inter_count++;
                 current_state = IDLE;
+                if (rx)
+                    break;
+            }
+
+        // Estado de IDLE
+        case IDLE:
+            // Serial.println(state_map[current_state]);
+            if (rx == 0) {
+                current_state = ID_A;
+                state_idx = 0;
+                frame_idx = 0;
+                is_idle = false; 
+            } else {
+                is_idle = true;
             }
             break;
 

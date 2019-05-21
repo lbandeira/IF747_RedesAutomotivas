@@ -83,6 +83,7 @@ void bit_stuff_insert() {
     }
     // Se for estado de ack, deve-se escrever um bit dominante (0) caso a mensagem tenha chegado correta
     else if (current_state == ACK && !is_writing) {
+        Serial.println("Tô mandando o ACK");
         if (valid_frame) 
             Tx = false;
         else

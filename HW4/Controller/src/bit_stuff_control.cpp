@@ -8,6 +8,10 @@ bool bit_stuff_flag = false; // indica que o bit atual lido do bus eh um bit stu
 // Funcao responsavel por checar se ha erros de bit stuffing
 // Recebe como parametros o bit atual do rx e o estado atual
 void check_bit_stuff(bool rx) {
+
+    if (bit_stuff_error)
+        bit_stuff_error = false;
+
     // se o estado atual for IDLE (start of frame)
     if (current_state == IDLE) {
         bits_count = 1;
@@ -21,7 +25,7 @@ void check_bit_stuff(bool rx) {
             bit_stuff_flag = false;
         // caso haja mais de 5 bits consecutivos iguais, um erro de bit stuffing eh detectado
         if (bits_count == 6) {
-            // Serial.println("BIT STUFF ERROR");
+            Serial.println(">>>>>> BIT STUFF ERROR <<<<<<");
             bit_stuff_error = true;
             bits_count = 1;
         } else if (bits_count == 5) {

@@ -1,13 +1,10 @@
-#include "bit_timing.h"
+#include <Arduino.h>
 
 void setup() {
-  Serial.begin(9600);
-  bit_timing_setup();
+  Serial.begin(115200);
+  // bit_timing_setup();
 }
 
 void loop() {
-  cli();
-  write_plot();
-  bit_timing_sm();
-  sei();
+  Serial.println("Dale");
 }

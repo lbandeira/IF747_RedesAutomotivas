@@ -5,6 +5,9 @@ bool bit_error_flag = false;
 
 void bit_error_control(bool rx, bool tx){
     
+    if (bit_error_flag)
+        bit_error_flag = false;
+
     // Esta verificacao de erro ocorre apenas pra quem esta escrevendo no bus
     if (is_writing) {
         switch (last_state){
@@ -51,5 +54,9 @@ void bit_error_control(bool rx, bool tx){
                 }   
                 break;
         }
+        if (bit_error_flag)
+            Serial.println(">>>>>> ACK ERROR <<<<<<");
+        if (arbitration_flag)
+            Serial.println(">>>>>> LOSS ARBITRATION <<<<<<");
     }
 }

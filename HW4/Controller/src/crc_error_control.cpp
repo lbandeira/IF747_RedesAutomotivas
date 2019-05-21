@@ -8,7 +8,6 @@ int crc_idx = 0;
 void crc_error_control(bool rx) {
     // Se o bit for um bit stuff, ignora
     if (bit_stuff_flag) {
-        crc_error_flag = false;
         return;
     }
 
@@ -33,7 +32,7 @@ void crc_error_control(bool rx) {
             // Serial.println("========================");
             if (calculated_crc != frame_crc) {
                 crc_error_flag = true;
-                Serial.print("CRC ERROR: ");
+                Serial.println(">>>>>> CRC ERROR <<<<<<");
                 Serial.println(crc_error_flag);
             } else {
                 valid_frame = true;

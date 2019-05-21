@@ -51,4 +51,7 @@ void form_error_control(bool rx){
         default:
             break;
     }
+
+    if (form_error_flag)
+        Serial.println(">>>>>> FORM ERROR <<<<<<");
 }

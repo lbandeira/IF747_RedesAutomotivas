@@ -15,7 +15,7 @@
 #define TQ_SEG_2 7
 #define TQ_QUANT_TOTAL 16
 #define SJW 10
-#define BIT_RATE 250000 // interrupcao a cada 1 segundo (tq a cada segundo)
+#define BIT_RATE 20000 // interrupcao a cada 1 segundo (tq a cada segundo)
 
 //Variaveis da maquina de estados
 #define SYNC 0

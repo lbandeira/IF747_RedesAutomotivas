@@ -74,6 +74,7 @@ int build_frame(bool *frame_id, bool *payload, bool *frame, bool is_extended, bo
 
     // Calculando CRC
     short crc = calculate_crc(frame, idx_crc);
+    // short crc = 0x1234;
     // Convertendo para array de bits
     bool crc_array[15];
     convert_to_bit_array(crc, crc_array, 15);

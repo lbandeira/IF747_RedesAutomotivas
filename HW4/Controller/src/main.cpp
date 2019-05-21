@@ -11,7 +11,7 @@
 
 bool rx[256] = { 0 };
 bool bus[256] = { 0 };
-bool unstuffed_frame[128] = { 0 };
+bool unstuffed_frame[512] = { 0 };
 int unstuffed_frame_size;
 int bus_idx = 0;
 int current_state;
@@ -21,11 +21,12 @@ bool Rx;
 bool last_writing_state = false;
 bool first_falling_edge = true;
 bool old_rx = true;
+int state_count = 0;
 
 const char bit_stuff_error_frame[] PROGMEM = "011001110010000100010101010101010101010101010101010101010101010101010101010101010100000000010100011111111111";
 const char ack_error_frame[] PROGMEM = "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001000010100011111111111";
 const char form_error_frame[] PROGMEM = "0100010010011111000001000001111100100001000101010101010101010101010101010101010101010101010101010101010101011110111110101011011111110";
-const char crc_error_frame[] PROGMEM = "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001100010100011011111111";
+const char crc_error_frame[] PROGMEM = "01100111001000010001010101010101010101010101010101010101010101010101010101010101010000010000111000110100000011111111";
 
 void reset_all() {
   current_state = IDLE;
@@ -152,6 +153,23 @@ void receive_frame() {
 //   print_bit_array(frame.raw, frame_idx);
 // }
 
+void debug_frame() {
+  if (!(current_state == IDLE && Rx)) {
+    if (last_state != current_state) {
+      Serial.print(" ");
+      state_count = 0;
+      Serial.print(state_map[current_state]);
+      Serial.print(": ");
+      Serial.print(Rx);
+    } else if (last_state == current_state) {
+      Serial.print(Rx);
+      state_count++;
+    }
+  } else if (current_state == IDLE) {
+    // Serial.println("BUS IDLE");
+  }
+}
+
 void setup() {
   Serial.begin(9600);
 
@@ -171,13 +189,18 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(RX_PIN), detect_falling_edge, FALLING);
 
   // Essa parte so sera executada pela ECU que envia o pacote, no caso a ESP32
-  #ifdef ESP32
   // Prepara o frame que vai ser utilizado no teste 
-  unstuffed_frame_size = prepare_transmission(unstuffed_frame); 
+  
+  // Frame ok estendido
+  // unstuffed_frame_size = prepare_transmission(unstuffed_frame);
+
+  // Frame com erro de crc
+  // string_to_bit_array((char *)crc_error_frame, unstuffed_frame);
+  unstuffed_frame_size = prepare_transmission(unstuffed_frame);
 
   // Setando o Rx = false para forçar um falling edge
   Rx = false;
-  #endif
+  // #endif
 }
 
 // Loop principal onde os modulos de encoder e decoder irao executar
@@ -185,9 +208,6 @@ void setup() {
 void loop() {
   // Desativando interrupcoes
   cli();
-
-  // Posteriormente isso deve ser implementado como uma interrupcao associada ao pino de rx
-  detect_falling_edge(old_rx, Rx);
 
   // Executando a maquina de estados do bit timing
   bit_timing_sm();
@@ -200,25 +220,9 @@ void loop() {
     // Escrevendo no barramento
     digitalWrite(TX_PIN, Tx);
 
-    // Debugando o frame que esta sendo escrito no bus
-    // if (!last_writing_state && is_writing) {
-    //   Serial.print("O seguinte frame foi escrito no bus: ");
-    //   Serial.print(Tx);
-    //   // Serial.print("Enviou: ");
-    //   // Serial.println(Tx);
-    // } else if (is_writing) {
-    //   Serial.print(Tx);  
-    //   // Serial.print("Enviou: ");
-    //   // Serial.println(Tx);
-    // } else if (last_writing_state && !is_writing) {
-    //   Serial.print(Tx);
-    //   Serial.println();
-    //   // Serial.print("Enviou: ");
-    //   // Serial.println(Tx);
-    // }
-    Serial.println("===============");
-    Serial.print("Escreveu: ");
-    Serial.println(Tx);
+    // Serial.println("===============");
+    // Serial.print("Escreveu: ");
+    // Serial.println(Tx);
     writing_point = false;
     
     last_writing_state = is_writing;
@@ -231,16 +235,22 @@ void loop() {
     // Obtendo um bit do barramento
     Rx = digitalRead(RX_PIN);
 
+    debug_frame();
+
+    // Serial.print(">>> Estado atual: ");
+    // Serial.print(state_map[current_state]);
+    // Serial.println(" <<<");
+
     check_bit_stuff(Rx);
     frame_decoder(Rx);
-    ack_error_control(Rx);
+    // ack_error_control(Rx);
     bit_error_control(Rx, Tx);
     form_error_control(Rx);
     crc_error_control(Rx);
 
-    Serial.print("Recebeu: ");
-    Serial.println(Rx);
-    Serial.println("===============");
+    // Serial.print("Recebeu: ");
+    // Serial.println(Rx);
+    // Serial.println("===============");
 
     // Serial.print("Recebi o bit: ");
     // Serial.println(Rx);

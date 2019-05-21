@@ -107,6 +107,7 @@ void bit_timing_setup() {
   resync_enable = false;
   hard_sync = false;
   is_falling_edge = false;
+  new_tq = false;
 
   #if defined(__AVR__)
   // Setup do timer para o Arduino
@@ -174,6 +175,10 @@ void bit_timing_sm() {
       #if defined(__AVR__)
       Timer1.restart();
       #elif defined(ESP32)
+      timer = timerBegin(0, 80, true);
+      timerAttachInterrupt(timer, &time_quanta_isr, true);
+      timerAlarmWrite(timer, BIT_RATE, true);
+      timerAlarmEnable(timer);
       #endif
     } else {
       resync = true;
@@ -194,9 +199,11 @@ void bit_timing_sm() {
 
       state_new = SYNC;
       hard_sync = false;
+      // Serial.println(">>>>>> HARD SYNC <<<<<<");
     
     } 
     else if (resync) {
+      // Serial.println(">>>>>> SOFT SYNC <<<<<<");
 
       if (resync_enable) {
 
@@ -287,7 +294,7 @@ void bit_timing_sm() {
       //SEG_2: TQ_SEG2 = 7
       case SEG_2:
         tq_tot++;
-        if ((state_old == SEG_1) || state_old == WINDOW_1){
+        if ((state_old == SEG_1) || (state_old == WINDOW_1)){
           tq_seg2 = 0;
           sample_point = true;
           state_old = SEG_2;
