@@ -55,7 +55,7 @@ void bit_error_control(bool rx, bool tx){
                 break;
         }
         if (bit_error_flag)
-            Serial.println(">>>>>> ACK ERROR <<<<<<");
+            Serial.println(">>>>>> BIT ERROR <<<<<<");
         if (arbitration_flag)
             Serial.println(">>>>>> LOSS ARBITRATION <<<<<<");
     }

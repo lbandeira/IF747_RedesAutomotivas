@@ -11,6 +11,7 @@ void ack_error_control(bool rx){
         // Serial.print("ACK >>>>> ");
         // Serial.println(rx);
         ack_error_flag = true;
+        Serial.println();
         Serial.println(">>>>>> ACK ERROR <<<<<<");
     }
 }

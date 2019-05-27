@@ -21,11 +21,6 @@ void frame_decoder(bool rx) {
         return;
     }
 
-    if(form_error_flag || ack_error_flag || crc_error_flag || bit_stuff_flag || bit_error_flag){
-        print_error_flags(ack_error_flag, bit_stuff_flag, bit_error_flag, form_error_flag, crc_error_flag);
-        current_state = ERR_FLAG;
-    }
-
     if (current_state != IDLE) {
         if (last_state == IDLE)
             frame.raw[frame_idx++] = 0;
@@ -176,27 +171,28 @@ void frame_decoder(bool rx) {
             }
             break;
         
+        // TODO ajeitar essa parte depois
         case ERR_FLAG:
-            if(rx == false){
+            if (rx == false) {
                 err_flag_count++;
-                current_state = ERR_FLAG;
-            }
-            else if((rx == true) && (err_flag_count >= 5)){
+            } else if (err_flag_count >= 5 && rx == true) {
                 err_delim_count = 0;
                 current_state = ERR_DELIM;
             }
             break;
 
         case ERR_DELIM:
-            if((rx == true) && (err_delim_count <= 7)){
+            if (rx == false) {
+                current_state = ERR_FLAG;
+                err_flag_count = 1;
+            } else {
                 err_delim_count++;
-                current_state = ERR_DELIM;
-            }
-            else{
-                err_flag_count = 0;
-                err_delim_count = 0;
-                inter_count = 0;
-                current_state = INTER;
+                if (err_delim_count >= 7) {
+                    current_state = INTER;
+                    err_delim_count = 0;
+                    err_flag_count = 0;
+                    inter_count = 0;
+                }
             }
             break;
         
@@ -257,4 +253,9 @@ void frame_decoder(bool rx) {
         default:
             break;
     }
+
+    // if(form_error_flag || ack_error_flag || crc_error_flag || bit_stuff_flag || bit_error_flag){
+    //     print_error_flags(ack_error_flag, bit_stuff_flag, bit_error_flag, form_error_flag, crc_error_flag);
+    //     current_state = ERR_FLAG;
+    // }
 }

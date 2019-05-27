@@ -10,6 +10,10 @@ void form_error_control(bool rx){
         form_error_flag = false;
         return;
     }
+    if (form_error_flag) {
+        form_error_flag = false;
+        return;
+    }
 
     switch(last_state){
         case RTR_A_SRR:
@@ -52,6 +56,8 @@ void form_error_control(bool rx){
             break;
     }
 
-    if (form_error_flag)
+    if (form_error_flag) {
+        Serial.println();
         Serial.println(">>>>>> FORM ERROR <<<<<<");
+    }
 }

@@ -24,7 +24,6 @@ void bit_stuff_insert() {
         err_count++;
         wait_next_frame = false;
         idx = 0;
-        Serial.println("ERROR FLAG");
     }
     // Estado de error delimiter ou overload delimite
     else if (current_state == ERR_DELIM || current_state == OVERLOAD_DELIM) {

@@ -166,7 +166,7 @@ void debug_frame() {
       state_count++;
     }
   } else if (current_state == IDLE) {
-    // Serial.println("BUS IDLE");
+    Serial.println("BUS IDLE");
   }
 }
 
@@ -247,6 +247,12 @@ void loop() {
     bit_error_control(Rx, Tx);
     form_error_control(Rx);
     crc_error_control(Rx);
+
+
+    if(form_error_flag || ack_error_flag || crc_error_flag || bit_stuff_error || bit_error_flag){
+        print_error_flags(ack_error_flag, bit_stuff_flag, bit_error_flag, form_error_flag, crc_error_flag);
+        current_state = ERR_FLAG;
+    }
 
     // Serial.print("Recebeu: ");
     // Serial.println(Rx);

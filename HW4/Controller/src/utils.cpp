@@ -107,6 +107,7 @@ void print_frame(CanFrame frame) {
 
 // Printa as flags de erro
 void print_error_flags(bool ack_error_flag, bool bit_stuff_error, bool bit_error_flag, bool form_error_flag, bool crc_error_flag) {
+    Serial.println();
     Serial.println("====================================================");
     Serial.println("ERROR FLAGS");
     Serial.println("====================================================");
@@ -120,6 +121,7 @@ void print_error_flags(bool ack_error_flag, bool bit_stuff_error, bool bit_error
     Serial.println(form_error_flag);
     Serial.print("ACK ERROR: ");
     Serial.println(ack_error_flag);
+    Serial.println("====================================================");
 }
 
 // Converte uma string representando bits para um array de bits
