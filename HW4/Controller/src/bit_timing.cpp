@@ -34,13 +34,6 @@ hw_timer_t *timer = NULL;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 #endif
 
-int getTqFrequency() {
-  double bitTime = 1.0 / BIT_RATE;
-  double tq = bitTime / (TQ_SYNC + TQ_PROP + TQ_SEG_1 + TQ_SEG_2);
-
-  return 1.0 / tq;
-}
-
 #if defined(__AVR__)
 // Tratamento da interrupcao Arduino
 void time_quanta_isr() {
@@ -118,7 +111,7 @@ void bit_timing_setup() {
   // Setup do timer para a ESP32
   timer = timerBegin(0, 80, true);
   timerAttachInterrupt(timer, &time_quanta_isr, true);
-  timerAlarmWrite(timer, BIT_RATE, true);
+  timerAlarmWrite(timer, TQ, true);
   timerAlarmEnable(timer);
   #endif
 
@@ -154,13 +147,6 @@ void update_plotter_values() {
 }
 
 // Detecta se houve um falling edge no bus
-void detect_falling_edge(bool old_rx, bool rx) {
-  if (old_rx && !rx) {
-    is_falling_edge = true;
-  }
-}
-
-// Detecta se houve um falling edge no bus
 void detect_falling_edge() {
   is_falling_edge = true;
 }
@@ -177,7 +163,7 @@ void bit_timing_sm() {
       #elif defined(ESP32)
       timer = timerBegin(0, 80, true);
       timerAttachInterrupt(timer, &time_quanta_isr, true);
-      timerAlarmWrite(timer, BIT_RATE, true);
+      timerAlarmWrite(timer, TQ, true);
       timerAlarmEnable(timer);
       #endif
     } else {

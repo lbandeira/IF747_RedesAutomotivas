@@ -48,6 +48,11 @@ void bit_error_control(bool rx, bool tx){
                 }
                 break;
 
+            case ACK:
+                if (rx != tx)
+                    bit_error_flag = false;
+                break;
+
             default:
                 if(rx != tx){
                     bit_error_flag = true;

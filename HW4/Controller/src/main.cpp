@@ -22,6 +22,7 @@ bool last_writing_state = false;
 bool first_falling_edge = true;
 bool old_rx = true;
 int state_count = 0;
+bool lol = false;
 
 const char bit_stuff_error_frame[] PROGMEM = "011001110010000100010101010101010101010101010101010101010101010101010101010101010100000000010100011111111111";
 const char ack_error_frame[] PROGMEM = "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001000010100011111111111";
@@ -120,39 +121,6 @@ void receive_frame() {
   crc_error_control(Rx);
 }
 
-// void test_rx_tx() {
-//   // Array de bits que representa o frame sem bit stuff
-//   bool unstuffed_frame[128];
-//   // Tamanho do frame sem bit stuff
-//   int unstuffed_frame_size;
-
-//   // Montando o frame sem bit stuff
-//   unstuffed_frame_size = prepare_transmission(unstuffed_frame);
-
-//   // Loop que representa o envio de um bit no bus, assim como a leitura do mesmo
-//   for (int i = 0; i < unstuffed_frame_size; ) {
-//     // Simulando trasmissao no bus
-//     if (flag_stuff)
-//       transmit_frame(unstuffed_frame[i]);
-//     else
-//       transmit_frame(unstuffed_frame[i++]);
-//     bus[bus_idx++] = Tx;
-
-//     // Simulando recepcao no bus
-//     Rx = bus[--bus_idx];
-//     receive_frame();
-//   }
-
-//   // Printando o frame recebido e construido
-//   print_frame(frame);
-
-//   // Printando flags de erro
-//   print_error_flags(ack_error_flag, bit_stuff_error, bit_error_flag, form_error_flag, crc_error_flag);
-
-//   // Printando o frame em binario
-//   print_bit_array(frame.raw, frame_idx);
-// }
-
 void debug_frame() {
   if (!(current_state == IDLE && Rx)) {
     if (last_state != current_state) {
@@ -170,8 +138,27 @@ void debug_frame() {
   }
 }
 
+void print_menu() {
+  Serial.println("================================================");
+  Serial.print("Do you want to transmit a package? (y/n) ");
+  while (!Serial.available());
+  Serial.println();
+  Serial.println("================================================");
+  if (Serial.available()) {
+    char option = Serial.readString()[0];
+    if (option == 'y' || option == 'Y') {
+      // Essa parte so sera executada pela ECU que envia o pacote, no caso a ESP32
+      unstuffed_frame_size = prepare_transmission(unstuffed_frame);
+      // Setando o Rx = false para forçar um falling edge
+      Rx = false;
+    } else {
+      Rx = true;
+    }
+  }
+}
+
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // Setando os pinos que serao o RX e TX
   pinMode(RX_PIN, INPUT);
@@ -187,25 +174,22 @@ void setup() {
   // Toda vez que houver uma mudanca do nivel logico 1 para o nivel logico 0
   // havera uma interrupcao
   attachInterrupt(digitalPinToInterrupt(RX_PIN), detect_falling_edge, FALLING);
-
-  // Essa parte so sera executada pela ECU que envia o pacote, no caso a ESP32
-  // Prepara o frame que vai ser utilizado no teste 
   
-  // Frame ok estendido
-  // unstuffed_frame_size = prepare_transmission(unstuffed_frame);
-
-  // Frame com erro de crc
-  // string_to_bit_array((char *)crc_error_frame, unstuffed_frame);
-  unstuffed_frame_size = prepare_transmission(unstuffed_frame);
-
-  // Setando o Rx = false para forçar um falling edge
-  Rx = false;
-  // #endif
+  Rx = true;
 }
 
 // Loop principal onde os modulos de encoder e decoder irao executar
 // Cada TQ esta programado para durar 1 segundo
 void loop() {
+  if (Serial.available()) {
+    Serial.read();
+    // Essa parte so sera executada pela ECU que envia o pacote, no caso a ESP32
+    unstuffed_frame_size = prepare_transmission(unstuffed_frame);
+    // Setando o Rx = false para forçar um falling edge
+    Rx = false;
+    is_idle = false;
+  }
+
   // Desativando interrupcoes
   cli();
 
@@ -220,51 +204,28 @@ void loop() {
     // Escrevendo no barramento
     digitalWrite(TX_PIN, Tx);
 
-    // Serial.println("===============");
-    // Serial.print("Escreveu: ");
-    // Serial.println(Tx);
     writing_point = false;
     
     last_writing_state = is_writing;
   }
-  
-  // Rx = Tx;
 
   // Caso seja o momento de ler do bus
   if (sample_point) {
     // Obtendo um bit do barramento
     Rx = digitalRead(RX_PIN);
-
     debug_frame();
-
-    // Serial.print(">>> Estado atual: ");
-    // Serial.print(state_map[current_state]);
-    // Serial.println(" <<<");
 
     check_bit_stuff(Rx);
     frame_decoder(Rx);
-    // ack_error_control(Rx);
+    ack_error_control(Rx);
     bit_error_control(Rx, Tx);
     form_error_control(Rx);
     crc_error_control(Rx);
-
 
     if(form_error_flag || ack_error_flag || crc_error_flag || bit_stuff_error || bit_error_flag){
         print_error_flags(ack_error_flag, bit_stuff_flag, bit_error_flag, form_error_flag, crc_error_flag);
         current_state = ERR_FLAG;
     }
-
-    // Serial.print("Recebeu: ");
-    // Serial.println(Rx);
-    // Serial.println("===============");
-
-    // Serial.print("Recebi o bit: ");
-    // Serial.println(Rx);
-    // print_error_flags(ack_error_flag, bit_stuff_error, bit_error_flag, form_error_flag, crc_error_flag);
-
-    // Printando flag de erro de bit
-    // Serial.print("Bit Error Flag: ");
-    // Serial.println(bit_error_flag);
 
     sample_point = false;
   }

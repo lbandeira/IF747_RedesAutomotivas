@@ -9,13 +9,14 @@
 #endif
 
 //Variaveis do calculo do Timequanta
-#define TQ_SYNC 1
-#define TQ_PROP 1
-#define TQ_SEG_1 8 //(PROP + SEG1)
-#define TQ_SEG_2 7
-#define TQ_QUANT_TOTAL 16
-#define SJW 10
-#define BIT_RATE 200000 // interrupcao a cada 1 segundo (tq a cada segundo)
+#define TQ              2000 // 2000 microseconds = 2 milliseconds
+#define TQ_SYNC         1
+#define TQ_PROP         1
+#define TQ_SEG_1        8 //(PROP + SEG1)
+#define TQ_SEG_2        7
+#define TQ_QUANT_TOTAL  16
+#define SJW             2
+#define BIT_RATE        200000 // interrupcao a cada 1 segundo (tq a cada segundo)
 
 //Variaveis da maquina de estados
 #define SYNC 0
