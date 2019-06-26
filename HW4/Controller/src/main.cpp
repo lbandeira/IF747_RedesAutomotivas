@@ -22,7 +22,11 @@ bool last_writing_state = false;
 bool first_falling_edge = true;
 bool old_rx = true;
 int state_count = 0;
-bool lol = false;
+bool waiting_to_send = false;
+bool led_state = false;
+
+const uint32_t ids_to_receive[] = { 0x10000001, 0x10000003 };
+const uint32_t my_id = 0x303;
 
 const char bit_stuff_error_frame[] PROGMEM = "011001110010000100010101010101010101010101010101010101010101010101010101010101010100000000010100011111111111";
 const char ack_error_frame[] PROGMEM = "0110011100100001000101010101010101010101010101010101010101010101010101010101010101000001000010100011111111111";
@@ -100,25 +104,14 @@ int create_frame(bool *buffer, uint32_t id, uint64_t payload, bool is_extended, 
 }
 
 // Caso retorne 0 indica que o bus esta ocupado
-int prepare_transmission(bool *unstuffed_frame) {
+int prepare_transmission(uint32_t id, uint64_t payload, bool *unstuffed_frame) {
   // Editar valores de acordo com o frame que vai ser transmitido
-  uint32_t id = 0x1127007A;
-  uint64_t payload = 0xAAAAAAAAAAAAAAAA;
   bool is_extended = true;
   bool is_data = true;
   int dlc = 8;
 
   // Criando o frame sem bit stuff
   return create_frame(unstuffed_frame, id, payload, is_extended, is_data, dlc);
-}
-
-void receive_frame() {
-  check_bit_stuff(Rx);
-  frame_decoder(Rx);
-  ack_error_control(Rx);
-  // bit_error_control(rx[i]);
-  form_error_control(Rx);
-  crc_error_control(Rx);
 }
 
 void debug_frame() {
@@ -148,12 +141,48 @@ void print_menu() {
     char option = Serial.readString()[0];
     if (option == 'y' || option == 'Y') {
       // Essa parte so sera executada pela ECU que envia o pacote, no caso a ESP32
-      unstuffed_frame_size = prepare_transmission(unstuffed_frame);
+      unstuffed_frame_size = prepare_transmission(0x1127007A, 0xAAAAAAAAAAAAAAAA, unstuffed_frame);
       // Setando o Rx = false para forçar um falling edge
       Rx = false;
     } else {
       Rx = true;
     }
+  }
+}
+
+void decode_message() {
+  bool is_extended = frame.ide;
+  uint32_t transmitter_id;
+  size_t id_array_len = sizeof(ids_to_receive) / sizeof(uint32_t);
+  long data = 0x01;
+
+  if (is_extended)
+    transmitter_id = decode_extended_id(frame.id_a, frame.id_b);
+  else
+    transmitter_id = (uint32_t)convert_bit_array_to_int(frame.id_a, 11);
+
+  for (int i = 0; i < id_array_len; i++) {
+    if (ids_to_receive[i] == transmitter_id) {
+      int dlc = (int)convert_bit_array_to_int(frame.dlc, 4);
+      data = convert_bit_array_to_int(frame.payload, dlc * 8);
+      waiting_to_send = true;
+    }
+  }
+
+  if (data == 0x01) {
+    led_state = false;
+    Serial.println("LED id off");
+  } else if (data == 0x02) {
+    led_state = true;
+    Serial.println("LED id on");
+  }
+}
+
+void send_message() {
+  if (led_state) {
+    unstuffed_frame_size = prepare_transmission(my_id, (uint64_t)0x01, unstuffed_frame);
+  } else {
+    unstuffed_frame_size = prepare_transmission(my_id, (uint64_t)0x02, unstuffed_frame);
   }
 }
 
@@ -163,6 +192,9 @@ void setup() {
   // Setando os pinos que serao o RX e TX
   pinMode(RX_PIN, INPUT);
   pinMode(TX_PIN, OUTPUT);
+
+  // Setando pino do LED
+  pinMode(LED_PIN, OUTPUT);
 
   // Reseta todos os estados e variaveis
   reset_all();
@@ -174,20 +206,34 @@ void setup() {
   // Toda vez que houver uma mudanca do nivel logico 1 para o nivel logico 0
   // havera uma interrupcao
   attachInterrupt(digitalPinToInterrupt(RX_PIN), detect_falling_edge, FALLING);
-  
+
   Rx = true;
 }
 
 // Loop principal onde os modulos de encoder e decoder irao executar
 // Cada TQ esta programado para durar 1 segundo
 void loop() {
+  digitalWrite(LED_PIN, led_state);
+
   if (Serial.available()) {
     Serial.read();
     // Essa parte so sera executada pela ECU que envia o pacote, no caso a ESP32
-    unstuffed_frame_size = prepare_transmission(unstuffed_frame);
+    unstuffed_frame_size = prepare_transmission(my_id, (uint64_t)0x02, unstuffed_frame);
     // Setando o Rx = false para forçar um falling edge
     Rx = false;
     is_idle = false;
+  }
+
+  // Verifica se a messagem que vem do bus está completa
+  if (!is_writing && is_frame_complete) {
+    decode_message();
+    is_frame_complete = false;
+  }
+
+  // Verifica se está no momento correto de responder
+  if (waiting_to_send && current_state == IDLE) {
+    send_message();
+    waiting_to_send = false;
   }
 
   // Desativando interrupcoes

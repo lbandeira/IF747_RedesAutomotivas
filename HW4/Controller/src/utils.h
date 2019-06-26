@@ -33,8 +33,9 @@ typedef unsigned long long ull;
 
 #elif defined(ESP32)
 // Pinos para o TX e RX na ESP32
-#define RX_PIN 18
-#define TX_PIN 26
+#define RX_PIN  18
+#define TX_PIN  26
+#define LED_PIN 27
 
 #endif
 
@@ -93,5 +94,8 @@ short calculate_crc(bool *frame, int frame_size);
 
 // Funcao que printa um array de bits
 void print_bit_array(bool *bit_array, int bit_array_size);
+
+// Funcao que recebe dois arrays de ids e converte para numero
+uint32_t decode_extended_id(bool *id_a, bool *id_b);
 
 #endif

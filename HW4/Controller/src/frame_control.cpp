@@ -6,6 +6,7 @@ int dlc = 0; // representa o tamanho (em bytes) do payload
 int payload_size = 0; // representa o tamanho do payload em bits
 bool is_extended = false; // booleano que indica que eh um frame extendido ou nao
 bool is_idle = true; // booleano que indica se o bus esta em idle
+bool is_frame_complete = false; // booleano que indica se o frame recebido chegou ao fim
 
 int err_flag_count = 0;
 int err_delim_count = 0;
@@ -22,8 +23,9 @@ void frame_decoder(bool rx) {
     }
 
     if (current_state != IDLE) {
-        if (last_state == IDLE)
-            frame.raw[frame_idx++] = 0;
+        if (last_state == IDLE) {
+            is_frame_complete = false;
+        }
         last_state = current_state;
         frame.raw[frame_idx++] = rx;
     }
@@ -167,6 +169,7 @@ void frame_decoder(bool rx) {
             if (state_idx == 7) {
                 state_idx = 0;
                 inter_count = 0;
+                is_frame_complete = true;
                 current_state = INTER;
             }
             break;

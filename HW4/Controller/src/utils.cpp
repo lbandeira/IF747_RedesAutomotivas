@@ -157,3 +157,18 @@ void print_bit_array(bool *bit_array, int bit_array_size) {
     }
     Serial.println();
 }
+
+// Funcao que recebe dois arrays de ids e converte para numero
+uint32_t decode_extended_id(bool *id_a, bool *id_b) {
+    uint32_t result = 0;
+
+    for (int i = 0; i < 29; i++) {
+        result <<= 1;
+        if (i < 11)
+            result |= id_a[i];
+        else
+            result |= id_b[i - 11];
+    }
+
+    return result;
+}
